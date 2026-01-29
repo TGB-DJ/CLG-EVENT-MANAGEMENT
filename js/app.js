@@ -31,6 +31,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Initialization ---
     renderDashboard();
 
+    // Set minimum date for event creation (today)
+    const dateInput = document.getElementById('event-date-input');
+    if (dateInput) {
+        const today = new Date().toISOString().split('T')[0];
+        dateInput.min = today;
+    }
+
     // --- Event Listeners ---
 
     // Create Event Modal
@@ -202,6 +209,20 @@ document.addEventListener('DOMContentLoaded', () => {
             Utils.showToast('Data exported successfully!', 'success');
         } catch (e) {
             Utils.showToast('Export failed', 'error');
+        }
+    });
+
+    // Logout Handler
+    document.getElementById('btn-logout').addEventListener('click', async () => {
+        if (confirm('Are you sure you want to logout?')) {
+            try {
+                await authService.logout();
+                Utils.showToast('Logged out successfully', 'success');
+                window.location.href = 'login.html';
+            } catch (error) {
+                console.error('Logout error:', error);
+                Utils.showToast('Logout failed', 'error');
+            }
         }
     });
 

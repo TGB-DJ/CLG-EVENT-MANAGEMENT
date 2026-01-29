@@ -1,10 +1,13 @@
-const CACHE_NAME = 'event-flow-v1';
+const CACHE_NAME = 'event-flow-v2'; // Increment version
 const ASSETS = [
     './',
     './index.html',
+    './admin.html',
     './login.html',
+    './student.html',
     './register.html',
     './scanner.html',
+    './manifest.json',
     './css/style.css',
     './js/utils.js',
     './js/app.js',

@@ -6,6 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EventFlow | College Event Management</title>
 
+    <!-- PWA Meta Tags -->
+    <meta name="description" content="College Event Management System - Manage events, registrations, and attendance">
+    <meta name="theme-color" content="#6366f1">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3176/3176396.png">
+
     <!-- Fonts -->
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@500;700;800&display=swap"
@@ -69,8 +75,20 @@
         import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { dbManager } from './js/db-firestore.js';
 
+        // Timeout fallback - if auth check takes too long, redirect to login
+        const authTimeout = setTimeout(() => {
+            console.warn('Auth check timeout - redirecting to login');
+            window.location.replace('login.html');
+        }, 5000); // 5 second timeout
+
         // This is the landing page - it routes users based on auth status
+        let hasRedirected = false; // Prevent multiple redirects
+
         onAuthStateChanged(auth, async (user) => {
+            if (hasRedirected) return; // Prevent multiple redirects
+
+            clearTimeout(authTimeout); // Clear timeout since auth responded
+
             if (user) {
                 // User is logged in - check their role and redirect
                 try {
@@ -81,22 +99,31 @@
 
                     console.log(`Authenticated: ${user.email}, Role: ${profile.role}`);
 
-                    // Redirect based on role
+                    hasRedirected = true;
+                    // Redirect based on role (use replace to prevent back button loop)
                     if (profile.role === 'admin') {
-                        window.location.href = 'admin.html';
+                        window.location.replace('admin.html');
                     } else {
-                        window.location.href = 'student.html';
+                        window.location.replace('student.html');
                     }
                 } catch (error) {
                     console.error("Error checking user role:", error);
-                    // If there's an error, default to student portal
-                    window.location.href = 'student.html';
+                    hasRedirected = true;
+                    // If there's an error, redirect to login to be safe
+                    window.location.replace('login.html');
                 }
             } else {
                 // Not logged in - redirect to login page
                 console.log("No user authenticated, redirecting to login");
-                window.location.href = 'login.html';
+                hasRedirected = true;
+                window.location.replace('login.html');
             }
+        }, (error) => {
+            // Error callback for onAuthStateChanged
+            console.error("Auth state change error:", error);
+            clearTimeout(authTimeout);
+            hasRedirected = true;
+            window.location.replace('login.html');
         });
     </script>
 </body>
