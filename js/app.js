@@ -5,8 +5,8 @@
 import { dbManager as db } from './db-firestore.js';
 import { authService } from './auth.js';
 
-// Protect this page
-authService.monitorAuth(true);
+// Protect this page (Admin Only)
+authService.monitorAuth('admin');
 
 const Utils = window.Utils;
 

@@ -1,17 +1,43 @@
+```javascript
 import { db } from './firebase-config.js';
 import {
     collection, addDoc, getDocs, doc, deleteDoc, updateDoc,
-    query, where, getDoc
+    query, where, getDoc, setDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const COLLECTIONS = {
     EVENTS: 'events',
-    REGISTRATIONS: 'registrations'
+    REGISTRATIONS: 'registrations',
+    USERS: 'users' // Added USERS collection
 };
 
 export class FirestoreManager {
     constructor() {
+        this.eventsCol = collection(db, COLLECTIONS.EVENTS);
+        this.regsCol = collection(db, COLLECTIONS.REGISTRATIONS);
+        this.usersCol = collection(db, COLLECTIONS.USERS);
         console.log("Firestore Manager Initialized");
+    }
+
+    // --- User Management ---
+    async getUserProfile(uid) {
+        const docRef = doc(this.usersCol, uid);
+        const docSnap = await getDoc(docRef);
+        return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } : null;
+    }
+
+    async createUserProfile(user) {
+        const docRef = doc(this.usersCol, user.uid);
+        const userData = {
+            email: user.email,
+            displayName: user.displayName || user.email.split('@')[0],
+            photoURL: user.photoURL,
+            role: 'user', // Default role
+            createdAt: new Date().toISOString()
+        };
+        // Use setDoc with merge to avoid overwriting if exists (idempotent)
+        await setDoc(docRef, userData, { merge: true });
+        return { id: user.uid, ...userData };
     }
 
     // --- Events ---

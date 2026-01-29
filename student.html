@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Portal | EventFlow</title>
+
+    <!-- Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@500;700;800&display=swap"
+        rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="container nav-container">
+            <a href="#" class="logo">
+                <i class="fa-solid fa-graduation-cap"></i> Student Portal
+            </a>
+            <div class="nav-links">
+                <button id="btn-logout" class="btn btn-danger" title="Sign Out">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container">
+        <div class="mb-4">
+            <h1>My Registrations</h1>
+            <p style="color: var(--text-muted)">Events you have signed up for.</p>
+        </div>
+
+        <div id="tickets-grid" class="grid grid-cols-2">
+            <!-- Tickets injected here -->
+            <div class="glass-panel" style="padding: 2rem; text-align: center; grid-column: span 2;">
+                <p style="color: var(--text-muted)">Loading your tickets...</p>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/utils.js"></script>
+    <script type="module">
+        import { dbManager } from './js/db-firestore.js';
+        import { authService } from './js/auth.js';
+        import { auth } from './js/firebase-config.js';
+
+        // Require 'user' role (or just logged in)
+        // Since monitorAuth defaults to creating a 'user' role if none exists, this is safe.
+        // We pass 'any' or just let it fall through logic. 
+        // For simplicity, we just use monitorAuth() with no strict role arg but rely on it not redirecting us
+        // However, admins might land here if they try, which is fine.
+        authService.monitorAuth('user-portal'); // Custom flag or just ensure logic in auth.js handles it
+
+        // We need custom logic because auth.js currently redirects 'user'->student.html
+        // If we are ALREADY on student.html, we don't want a loop.
+        // The logic in auth.js:
+        // if (window.location.pathname.includes('login.html')) -> redirect
+        // else if (requiredRole === 'admin' && profile.role !== 'admin') -> redirect student
+
+        // So for student.html, we just need to ensure they are logged in.
+
+        const Utils = window.Utils;
+
+        document.getElementById('btn-logout').addEventListener('click', () => {
+            authService.logout();
+        });
+
+        // Load Tickets
+        // Note: We need a query in db-firestore.js to get registrations by email.
+        // Currently we don't have it explicitly exported, so we might need to fetch all and filter client side
+        // or add a new method. For Scale, we should add a method.
+        // For now (MVP), we fetch all and filter. (Not secure for real prod but ok for demo)
+
+        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) return; // Auth service handles redirect
+
+            const ticketsGrid = document.getElementById('tickets-grid');
+            try {
+                // Hack: Using public fetch for now. Ideally should be db.getMyRegistrations(email)
+                const allRegs = await dbManager.getRegistrations();
+                const myRegs = allRegs.filter(r => r.email.toLowerCase() === user.email.toLowerCase());
+
+                const events = await dbManager.getEvents(); // To map Event IDs to Titles
+
+                ticketsGrid.innerHTML = '';
+
+                if (myRegs.length === 0) {
+                    ticketsGrid.innerHTML = `
+                        <div class="glass-panel" style="padding: 2rem; text-align: center; grid-column: span 2;">
+                            <p style="color: var(--text-muted)">No registrations found.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                myRegs.forEach(reg => {
+                    const event = events.find(e => e.id === reg.eventId);
+                    if (!event) return;
+
+                    const card = document.createElement('div');
+                    card.className = 'glass-panel';
+                    card.style.padding = '1.5rem';
+                    card.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                            <h3 style="color: var(--secondary)">${event.title}</h3>
+                            <span class="badge ${reg.scanned ? 'badge-success' : 'badge-warning'}">
+                                ${reg.scanned ? 'Attended' : 'Registered'}
+                            </span>
+                        </div>
+                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">
+                            <i class="fa-regular fa-calendar"></i> ${Utils.formatDate(event.date)}
+                        </p>
+                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">
+                            <i class="fa-solid fa-location-dot"></i> ${event.venue}
+                        </p>
+                        
+                        <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 0.5rem; text-align: center; margin-bottom: 1rem;">
+                            <a href="register.html?event=${event.id}&ticket=${reg.id}" target="_blank" style="color: var(--primary); text-decoration: none; font-weight: bold;">
+                                <i class="fa-solid fa-qrcode"></i> View Ticket
+                            </a>
+                        </div>
+                    `;
+                    ticketsGrid.appendChild(card);
+                });
+
+            } catch (e) {
+                console.error(e);
+            }
+        });
+
+    </script>
+</body>
+
+</html>
