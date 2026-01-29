@@ -1,4 +1,3 @@
-```javascript
 import { db } from './firebase-config.js';
 import {
     collection, addDoc, getDocs, doc, deleteDoc, updateDoc,
@@ -10,6 +9,13 @@ const COLLECTIONS = {
     REGISTRATIONS: 'registrations',
     USERS: 'users' // Added USERS collection
 };
+
+// ADMIN EMAIL WHITELIST - Add your email here to become first admin
+const ADMIN_EMAILS = [
+    'chirenjeevi7616@gmail.com',  // First admin
+    'chiru@gmail.com',             // Second admin
+    // Add more emails below:
+];
 
 export class FirestoreManager {
     constructor() {
@@ -28,15 +34,27 @@ export class FirestoreManager {
 
     async createUserProfile(user) {
         const docRef = doc(this.usersCol, user.uid);
+
+        // Check if email is in admin whitelist (case-insensitive)
+        const isAdmin = ADMIN_EMAILS.some(email =>
+            email.toLowerCase() === user.email.toLowerCase()
+        );
+
         const userData = {
             email: user.email,
             displayName: user.displayName || user.email.split('@')[0],
             photoURL: user.photoURL,
-            role: 'user', // Default role
+            role: isAdmin ? 'admin' : 'user', // Auto-promote if whitelisted
             createdAt: new Date().toISOString()
         };
+
         // Use setDoc with merge to avoid overwriting if exists (idempotent)
         await setDoc(docRef, userData, { merge: true });
+
+        if (isAdmin) {
+            console.log(`🎉 Admin account created for: ${user.email} `);
+        }
+
         return { id: user.uid, ...userData };
     }
 
@@ -74,6 +92,10 @@ export class FirestoreManager {
         }
     }
 
+    getAllEvents() {
+        return this.getEvents();
+    }
+
     async createEvent(eventData) {
         const newEvent = {
             createdAt: new Date().toISOString(),
@@ -108,7 +130,19 @@ export class FirestoreManager {
     }
 
     async registerParticipant(registrationData) {
-        // Check for duplicates
+        // 1. Check event capacity
+        const event = await this.getEvent(registrationData.eventId);
+        if (!event) {
+            throw new Error('Event not found');
+        }
+
+        // Get current registration count
+        const eventRegs = await this.getRegistrations(registrationData.eventId);
+        if (event.capacity && eventRegs.length >= event.capacity) {
+            throw new Error(`Event is full! Maximum capacity: ${event.capacity}`);
+        }
+
+        // 2. Check for duplicates
         const q = query(
             collection(db, COLLECTIONS.REGISTRATIONS),
             where("eventId", "==", registrationData.eventId),
@@ -117,9 +151,10 @@ export class FirestoreManager {
         const querySnapshot = await getDocs(q);
 
         if (!querySnapshot.empty) {
-            throw new Error('Participant already registered for this event.');
+            throw new Error('You are already registered for this event');
         }
 
+        // 3. Create registration
         const newRegistration = {
             registeredAt: new Date().toISOString(),
             scanned: false,
@@ -149,10 +184,42 @@ export class FirestoreManager {
     }
 
     // --- Utils ---
+    async getAllUsers() {
+        const querySnapshot = await getDocs(collection(db, COLLECTIONS.USERS));
+        const users = [];
+        querySnapshot.forEach((doc) => {
+            users.push({ id: doc.id, ...doc.data() });
+        });
+        return users;
+    }
+
     async exportData() {
         const events = await this.getEvents();
         const registrations = await this.getRegistrations();
-        return JSON.stringify({ events, registrations, exportedAt: new Date().toISOString() });
+        const users = await this.getAllUsers();
+
+        const exportData = {
+            exportDate: new Date().toISOString(),
+            version: '1.0',
+            events: events,
+            registrations: registrations,
+            users: users.map(u => ({
+                id: u.id,
+                email: u.email,
+                displayName: u.displayName,
+                role: u.role,
+                createdAt: u.createdAt
+            })),
+            stats: {
+                totalEvents: events.length,
+                totalRegistrations: registrations.length,
+                totalUsers: users.length,
+                adminUsers: users.filter(u => u.role === 'admin').length,
+                upcomingEvents: events.filter(e => new Date(e.date) >= new Date()).length
+            }
+        };
+
+        return JSON.stringify(exportData, null, 2);
     }
 }
 

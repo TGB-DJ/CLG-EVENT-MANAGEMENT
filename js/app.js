@@ -159,6 +159,7 @@ document.addEventListener('DOMContentLoaded', () => {
             date: formData.get('date'),
             time: formData.get('time'),
             venue: formData.get('venue'),
+            capacity: parseInt(formData.get('capacity')) || null,
             description: formData.get('description'),
         };
 
@@ -179,15 +180,24 @@ document.addEventListener('DOMContentLoaded', () => {
             const btn = e.target.closest('.btn-delete-event');
             const id = btn.dataset.id;
 
-            if (confirm('Are you sure you want to delete this event?')) {
-                try {
-                    await db.deleteEvent(id);
-                    Utils.showToast('Event deleted.', 'info');
-                    renderDashboard();
-                } catch (error) {
-                    console.error(error);
-                    Utils.showToast('Failed to delete.', 'error');
+            // Get event details for better confirmation
+            try {
+                const events = await db.getAllEvents();
+                const event = events.find(e => e.id === id);
+                const eventTitle = event ? event.title : 'this event';
+
+                const confirmMsg = `Delete "${eventTitle}"?\n\n⚠️ This will permanently delete:\n• The event\n• All registrations\n\nThis cannot be undone.`;
+
+                if (!confirm(confirmMsg)) {
+                    return;
                 }
+
+                await db.deleteEvent(id);
+                Utils.showToast(`"${eventTitle}" deleted successfully`, 'info');
+                renderDashboard();
+            } catch (error) {
+                console.error(error);
+                Utils.showToast('Failed to delete event', 'error');
             }
         }
     });

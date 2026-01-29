@@ -15,6 +15,9 @@
     <link rel="stylesheet" href="css/style.css">
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- QR Code Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 
 <body>
@@ -24,7 +27,7 @@
         style="position: fixed; inset: 0; background: var(--bg-dark); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted);">
         <i class="fa-solid fa-circle-notch fa-spin"
             style="font-size: 3rem; color: var(--secondary); margin-bottom: 1rem;"></i>
-        <p>Verifying Student Access...</p>
+        <p>Loading Student Portal...</p>
     </div>
 
     <!-- Navbar -->
@@ -35,7 +38,7 @@
             </a>
             <div class="nav-links">
                 <button id="btn-logout-student" class="btn btn-danger" title="Sign Out">
-                    <i class="fa-solid fa-right-from-bracket"></i>
+                    <i class="fa-solid fa-right-from-bracket"></i> Logout
                 </button>
             </div>
         </div>
@@ -61,9 +64,23 @@
             </div>
         </div>
 
+        <!-- Upcoming Events Section -->
         <div class="mb-4">
-            <h1>My Registrations</h1>
-            <p style="color: var(--text-muted)">Events you have signed up for.</p>
+            <h1>Upcoming Events</h1>
+            <p style="color: var(--text-muted)">Browse and register for upcoming events.</p>
+        </div>
+
+        <div id="events-grid" class="grid grid-cols-3 mb-6">
+            <!-- Events injected here -->
+            <div class="glass-panel" style="padding: 2rem; text-align: center; grid-column: span 3;">
+                <p style="color: var(--text-muted)">Loading events...</p>
+            </div>
+        </div>
+
+        <!-- My Tickets Section -->
+        <div class="mb-4">
+            <h1>My Tickets</h1>
+            <p style="color: var(--text-muted)">Events you have registered for.</p>
         </div>
 
         <div id="tickets-grid" class="grid grid-cols-2">
@@ -79,67 +96,163 @@
         import { dbManager } from './js/db-firestore.js';
         import { authService } from './js/auth.js';
         import { auth } from './js/firebase-config.js';
-
-        // Require 'user' role (or just logged in)
-        // Since monitorAuth defaults to creating a 'user' role if none exists, this is safe.
-        // We pass 'any' or just let it fall through logic. 
-        // For simplicity, we just use monitorAuth() with no strict role arg but rely on it not redirecting us
-        // However, admins might land here if they try, which is fine.
-        authService.monitorAuth('user-portal'); // Custom flag or just ensure logic in auth.js handles it
-
-        // We need custom logic because auth.js currently redirects 'user'->student.html
-        // If we are ALREADY on student.html, we don't want a loop.
-        // The logic in auth.js:
-        // if (window.location.pathname.includes('login.html')) -> redirect
-        // else if (requiredRole === 'admin' && profile.role !== 'admin') -> redirect student
-
-        // So for student.html, we just need to ensure they are logged in.
+        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
         const Utils = window.Utils;
 
-        document.getElementById('btn-logout').addEventListener('click', () => {
-            authService.logout();
-        });
+        console.log('🎓 [STUDENT PORTAL] Initializing...');
 
-        // Load Tickets
-        // Note: We need a query in db-firestore.js to get registrations by email.
-        // Currently we don't have it explicitly exported, so we might need to fetch all and filter client side
-        // or add a new method. For Scale, we should add a method.
-        // For now (MVP), we fetch all and filter. (Not secure for real prod but ok for demo)
-
-        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-
+        // Monitor auth state
         onAuthStateChanged(auth, async (user) => {
-            if (!user) return; // Auth service handles redirect
+            console.log('🔔 [STUDENT PORTAL] Auth state:', user ? user.email : 'No user');
 
-            // Populate Profile
-            document.getElementById('user-name').textContent = user.displayName || 'Student';
-            document.getElementById('user-email').textContent = user.email;
-
-            if (user.photoURL) {
-                const img = document.getElementById('user-photo');
-                img.src = user.photoURL;
-                img.style.display = 'block';
-                document.getElementById('user-initials').style.display = 'none';
-            } else {
-                const initials = (user.displayName || user.email).charAt(0).toUpperCase();
-                document.getElementById('user-initials').textContent = initials;
+            if (!user) {
+                console.log('❌ [STUDENT PORTAL] No user, redirecting to login');
+                window.location.href = 'login.html';
+                return;
             }
 
-            const ticketsGrid = document.getElementById('tickets-grid');
             try {
-                // Hack: Using public fetch for now. Ideally should be db.getMyRegistrations(email)
+                // Hide loader, show content
+                document.getElementById('auth-loader').classList.add('hidden');
+                document.getElementById('main-nav').classList.remove('hidden');
+                document.getElementById('main-content').classList.remove('hidden');
+
+                console.log('✅ [STUDENT PORTAL] UI visible');
+
+                // Populate Profile
+                document.getElementById('user-name').textContent = user.displayName || 'Student';
+                document.getElementById('user-email').textContent = user.email;
+
+                if (user.photoURL) {
+                    const img = document.getElementById('user-photo');
+                    img.src = user.photoURL;
+                    img.style.display = 'block';
+                    document.getElementById('user-initials').style.display = 'none';
+                } else {
+                    const initials = (user.displayName || user.email).charAt(0).toUpperCase();
+                    document.getElementById('user-initials').textContent = initials;
+                }
+
+                // Load data
+                await Promise.all([
+                    loadUpcomingEvents(user),
+                    loadMyTickets(user)
+                ]);
+
+                console.log('✅ [STUDENT PORTAL] All data loaded');
+
+            } catch (error) {
+                console.error('❌ [STUDENT PORTAL] Error:', error);
+                Utils.showToast('Error loading portal: ' + error.message, 'error');
+            }
+        });
+
+        // Load Upcoming Events
+        async function loadUpcomingEvents(user) {
+            console.log('📅 [STUDENT PORTAL] Loading upcoming events...');
+            const eventsGrid = document.getElementById('events-grid');
+
+            try {
+                const allEvents = await dbManager.getAllEvents();
+                const allRegs = await dbManager.getRegistrations();
+
+                // Get user's registered event IDs
+                const myEventIds = allRegs
+                    .filter(r => r.email.toLowerCase() === user.email.toLowerCase())
+                    .map(r => r.eventId);
+
+                // Filter to upcoming events only
+                const now = new Date();
+                now.setHours(0, 0, 0, 0);
+
+                const upcomingEvents = allEvents.filter(event => {
+                    const eventDate = new Date(event.date);
+                    return eventDate >= now;
+                });
+
+                console.log(`📊 [STUDENT PORTAL] Found ${upcomingEvents.length} upcoming events`);
+
+                eventsGrid.innerHTML = '';
+
+                if (upcomingEvents.length === 0) {
+                    eventsGrid.innerHTML = `
+                        <div class="glass-panel" style="padding: 2rem; text-align: center; grid-column: span 3;">
+                            <i class="fa-solid fa-calendar-xmark" style="font-size: 3rem; color: var(--text-muted); margin-bottom: 1rem;"></i>
+                            <p style="color: var(--text-muted)">No upcoming events at the moment.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                upcomingEvents.forEach(event => {
+                    const alreadyRegistered = myEventIds.includes(event.id);
+
+                    const card = document.createElement('div');
+                    card.className = 'glass-panel';
+                    card.style.padding = '1.5rem';
+                    card.innerHTML = `
+                        <h3 style="color: var(--primary); margin-bottom: 0.75rem;">${event.title}</h3>
+                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">
+                            <i class="fa-regular fa-calendar"></i> ${Utils.formatDate(event.date)}
+                        </p>
+                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">
+                            <i class="fa-solid fa-clock"></i> ${event.time || 'TBA'}
+                        </p>
+                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">
+                            <i class="fa-solid fa-location-dot"></i> ${event.venue}
+                        </p>
+                        ${event.capacity ? `
+                            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">
+                                <i class="fa-solid fa-users"></i> Capacity: ${event.capacity}
+                            </p>
+                        ` : ''}
+                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem; line-height: 1.5;">
+                            ${event.description || 'No description available.'}
+                        </p>
+                        ${alreadyRegistered ? `
+                            <button class="btn btn-secondary" disabled style="width: 100%; opacity: 0.6; cursor: not-allowed;">
+                                <i class="fa-solid fa-check"></i> Already Registered
+                            </button>
+                        ` : `
+                            <a href="register.html?event=${event.id}" class="btn btn-primary" style="width: 100%; text-decoration: none; display: inline-block; text-align: center;">
+                                <i class="fa-solid fa-ticket"></i> Buy Ticket
+                            </a>
+                        `}
+                    `;
+                    eventsGrid.appendChild(card);
+                });
+
+            } catch (error) {
+                console.error('❌ [STUDENT PORTAL] Error loading events:', error);
+                eventsGrid.innerHTML = `
+                    <div class="glass-panel" style="padding: 2rem; text-align: center; grid-column: span 3;">
+                        <p style="color: var(--danger)">Error loading events: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Load My Tickets
+        async function loadMyTickets(user) {
+            console.log('🎫 [STUDENT PORTAL] Loading tickets...');
+            const ticketsGrid = document.getElementById('tickets-grid');
+
+            try {
                 const allRegs = await dbManager.getRegistrations();
                 const myRegs = allRegs.filter(r => r.email.toLowerCase() === user.email.toLowerCase());
+                const events = await dbManager.getAllEvents();
 
-                const events = await dbManager.getEvents(); // To map Event IDs to Titles
+                console.log(`📊 [STUDENT PORTAL] Found ${myRegs.length} tickets`);
 
                 ticketsGrid.innerHTML = '';
 
                 if (myRegs.length === 0) {
                     ticketsGrid.innerHTML = `
                         <div class="glass-panel" style="padding: 2rem; text-align: center; grid-column: span 2;">
-                            <p style="color: var(--text-muted)">No registrations found.</p>
+                            <i class="fa-solid fa-ticket" style="font-size: 3rem; color: var(--text-muted); margin-bottom: 1rem;"></i>
+                            <p style="color: var(--text-muted); margin-bottom: 1rem;">No tickets yet!</p>
+                            <p style="color: var(--text-muted); font-size: 0.9rem;">Browse upcoming events above to get started.</p>
                         </div>
                     `;
                     return;
@@ -148,6 +261,8 @@
                 myRegs.forEach(reg => {
                     const event = events.find(e => e.id === reg.eventId);
                     if (!event) return;
+
+                    const waText = `🎉 I'm attending ${event.title}!\n\n📅 Date: ${Utils.formatDate(event.date)}\n📍 Venue: ${event.venue}\n\nSee you there!`;
 
                     const card = document.createElement('div');
                     card.className = 'glass-panel';
@@ -162,23 +277,34 @@
                         <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">
                             <i class="fa-regular fa-calendar"></i> ${Utils.formatDate(event.date)}
                         </p>
-                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">
+                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">
                             <i class="fa-solid fa-location-dot"></i> ${event.venue}
                         </p>
+                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem; font-family: monospace;">
+                            Ticket ID: ${reg.id.substring(0, 8)}...
+                        </p>
                         
-                        <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 0.5rem; text-align: center; margin-bottom: 1rem;">
-                            <a href="register.html?event=${event.id}&ticket=${reg.id}" target="_blank" style="color: var(--primary); text-decoration: none; font-weight: bold;">
-                                <i class="fa-solid fa-qrcode"></i> View Ticket
+                        <div style="display: flex; gap: 0.5rem;">
+                            <a href="register.html?event=${event.id}&ticket=${reg.id}" target="_blank" class="btn btn-primary" style="flex: 1; text-decoration: none; display: flex; align-items: center; justify-content: center;">
+                                <i class="fa-solid fa-qrcode"></i> View
+                            </a>
+                            <a href="https://wa.me/?text=${encodeURIComponent(waText)}" target="_blank" class="btn btn-secondary" style="flex: 1; text-decoration: none; display: flex; align-items: center; justify-content: center; background: #25D366;">
+                                <i class="fa-brands fa-whatsapp"></i> Share
                             </a>
                         </div>
                     `;
                     ticketsGrid.appendChild(card);
                 });
 
-            } catch (e) {
-                console.error(e);
+            } catch (error) {
+                console.error('❌ [STUDENT PORTAL] Error loading tickets:', error);
+                ticketsGrid.innerHTML = `
+                    <div class="glass-panel" style="padding: 2rem; text-align: center; grid-column: span 2;">
+                        <p style="color: var(--danger)">Error loading tickets: ${error.message}</p>
+                    </div>
+                `;
             }
-        });
+        }
 
         // Logout Handler
         document.getElementById('btn-logout-student').addEventListener('click', async () => {
@@ -188,6 +314,7 @@
                     window.location.href = 'login.html';
                 } catch (error) {
                     console.error('Logout error:', error);
+                    Utils.showToast('Logout failed', 'error');
                 }
             }
         });

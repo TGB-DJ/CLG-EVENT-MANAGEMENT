@@ -196,6 +196,27 @@
                 btn.textContent = 'Sign In';
             }
         });
+
+        // Password Reset Handler
+        const forgotPasswordLink = document.createElement('a');
+        forgotPasswordLink.href = '#';
+        forgotPasswordLink.textContent = 'Forgot Password?';
+        forgotPasswordLink.style.cssText = 'font-size: 0.875rem; color: var(--primary); text-decoration: none; display: block; text-align: right; margin-top: 0.5rem;';
+        document.querySelector('input[type="password"]').parentElement.appendChild(forgotPasswordLink);
+
+        forgotPasswordLink.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const email = prompt('Enter your email address to reset password:');
+            if (email) {
+                try {
+                    await authService.resetPassword(email);
+                    alert('Password reset email sent! Check your inbox.');
+                } catch (error) {
+                    console.error(error);
+                    alert('Error: ' + (error.message || 'Could not send reset email'));
+                }
+            }
+        });
     </script>
 
     <!-- Service Worker Registration for PWA -->

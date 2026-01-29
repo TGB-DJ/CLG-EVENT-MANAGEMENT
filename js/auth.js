@@ -1,6 +1,8 @@
 import { auth } from './firebase-config.js';
 import {
     signInWithEmailAndPassword,
+    createUserWithEmailAndPassword,
+    sendPasswordResetEmail,
     signOut,
     onAuthStateChanged,
     GoogleAuthProvider,
@@ -15,10 +17,16 @@ export class AuthService {
         this.googleProvider = new GoogleAuthProvider();
     }
 
-    // Login methods remain same...
+    // Login methods
     login(email, password) { return signInWithEmailAndPassword(auth, email, password); }
     loginWithGoogle() { return signInWithPopup(auth, this.googleProvider); }
     logout() { return signOut(auth); }
+
+    // Password reset
+    resetPassword(email) { return sendPasswordResetEmail(auth, email); }
+
+    // Sign up (for email/password users)
+    signup(email, password) { return createUserWithEmailAndPassword(auth, email, password); }
 
     monitorAuth(requiredRole = null) {
         onAuthStateChanged(auth, async (user) => {
