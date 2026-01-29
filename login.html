@@ -155,7 +155,13 @@
             } catch (error) {
                 console.error(error);
                 let msg = "Login failed: " + error.code;
-                if (error.code === 'auth/invalid-credential') msg = "Invalid email or password.";
+
+                if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found') {
+                    msg = "Account not found or wrong password. If new, use Google Login.";
+                } else if (error.code === 'auth/wrong-password') {
+                    msg = "Invalid password.";
+                }
+
                 showError(msg);
                 btn.disabled = false;
                 btn.textContent = 'Sign In';
