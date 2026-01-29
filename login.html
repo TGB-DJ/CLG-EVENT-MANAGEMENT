@@ -110,33 +110,46 @@
         const errorDiv = document.getElementById('login-error-msg');
 
         function showError(message) {
-            errorDiv.textContent = message;
+            errorDiv.innerHTML = message; // Changed to innerHTML for formatting
             errorDiv.style.display = 'block';
-            Utils.showToast(message, 'error');
+            Utils.showToast(message.replace(/<[^>]*>?/gm, ''), 'error'); // Strip tags for toast
         }
 
         // Google Login
         btnGoogle.addEventListener('click', async () => {
+            console.log("Starting Google Login...");
             errorDiv.style.display = 'none';
+
             try {
                 await authService.loginWithGoogle();
                 Utils.showToast('Login Successful. Redirecting...', 'success');
                 // The monitorAuth in auth.js should catch this, but just in case:
-                setTimeout(() => window.location.reload(), 1500); // Reload forces re-check
+                setTimeout(() => window.location.reload(), 1500);
             } catch (error) {
-                console.error("Google Login Error:", error);
+                console.error("Google Login Detail Error:", error);
+                // Log full error object to help user debug in console
+                console.dir(error);
 
                 let msg = `Login Failed: ${error.message}`;
 
                 if (error.code === 'auth/operation-not-supported-in-this-environment') {
-                    msg = 'Security Error: You cannot login from a file (file://). Please use a Local Server or GitHub Pages.';
+                    msg = '<b>Security Error:</b> You cannot login from a file (file://).<br>Please use a <b>Local Server</b> or <b>GitHub Pages</b>.<br>See TROUBLESHOOTING.md for details.';
                 } else if (error.code === 'auth/popup-closed-by-user') {
                     msg = 'Sign-in cancelled by user.';
                 } else if (error.code === 'auth/unauthorized-domain') {
-                    msg = `Domain Blocked: Go to Firebase Console > Auth > Settings > Authorized Domains and add this website domain: ${window.location.hostname}`;
+                    msg = `<b>Domain Blocked (${window.location.hostname})</b><br>
+                           1. Go to Firebase Console > Auth > Settings > Authorized Domains<br>
+                           2. Add this domain: <b>${window.location.hostname}</b><br>
+                           See TROUBLESHOOTING.md`;
+                } else if (error.code === 'auth/network-request-failed') {
+                    msg = '<b>Network Error:</b> Check your internet connection. If you are offline, Google Login will not work.';
                 }
 
                 showError(msg);
+                // Also alert standard JS alert just in case CSS hides the div
+                if (error.code === 'auth/unauthorized-domain') {
+                    alert(`Domain Blocked: Add '${window.location.hostname}' to Firebase Console > Auth > Authorized Domains.`);
+                }
             }
         });
 
