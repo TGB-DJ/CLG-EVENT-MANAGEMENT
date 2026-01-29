@@ -1,0 +1,80 @@
+// Add these variables after line 19 in app.js:
+const modalEdit = document.getElementById('modal-edit-event');
+const formEdit = document.getElementById('form-edit-event');
+
+// Add these handlers after the create modal handlers (after line 58):
+
+// Edit Event Modal Handlers
+closeModalBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+        modalEdit.classList.add('hidden');
+    });
+});
+
+modalEdit.addEventListener('click', (e) => {
+    if (e.target === modalEdit) {
+        modalEdit.classList.add('hidden');
+    }
+});
+
+// Edit Event Form Submit
+formEdit.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const eventId = document.getElementById('edit-event-id').value;
+    const formData = new FormData(formEdit);
+    const eventData = {
+        title: formData.get('title'),
+        date: formData.get('date'),
+        time: formData.get('time'),
+        venue: formData.get('venue'),
+        capacity: parseInt(formData.get('capacity')) || null,
+        description: formData.get('description'),
+    };
+
+    try {
+        await db.updateEvent(eventId, eventData);
+        Utils.showToast('Event updated successfully!', 'success');
+        modalEdit.classList.add('hidden');
+        renderDashboard();
+    } catch (error) {
+        console.error(error);
+        Utils.showToast('Failed to update event.', 'error');
+    }
+});
+
+// Add this handler after the delete event handler (after line 203):
+
+// Handle Edit Button Clicks
+eventsGrid.addEventListener('click', async (e) => {
+    if (e.target.closest('.btn-edit-event')) {
+        const btn = e.target.closest('.btn-edit-event');
+        const id = btn.dataset.id;
+
+        try {
+            // Fetch event details
+            const events = await db.getAllEvents();
+            const event = events.find(e => e.id === id);
+
+            if (!event) {
+                Utils.showToast('Event not found', 'error');
+                return;
+            }
+
+            // Pre-fill form
+            document.getElementById('edit-event-id').value = id;
+            document.getElementById('edit-title').value = event.title;
+            document.getElementById('edit-date').value = event.date;
+            document.getElementById('edit-time').value = event.time || '';
+            document.getElementById('edit-venue').value = event.venue;
+            document.getElementById('edit-capacity').value = event.capacity || '';
+            document.getElementById('edit-description').value = event.description || '';
+
+            // Open modal
+            modalEdit.classList.remove('hidden');
+        } catch (error) {
+            console.error(error);
+            Utils.showToast('Failed to load event details', 'error');
+        }
+    }
+});

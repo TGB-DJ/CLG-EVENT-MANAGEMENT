@@ -112,6 +112,16 @@ export class FirestoreManager {
         // For this simple version, we'll leave orphaned registrations or handle them if needed
     }
 
+    async updateEvent(id, eventData) {
+        const docRef = doc(db, COLLECTIONS.EVENTS, id);
+        const updateData = {
+            ...eventData,
+            updatedAt: new Date().toISOString()
+        };
+        await updateDoc(docRef, updateData);
+        return { id, ...updateData };
+    }
+
     // --- Registrations ---
     async getRegistrations(eventId = null) {
         let q;

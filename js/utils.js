@@ -77,3 +77,6 @@ const Utils = {
         }, 3000);
     }
 };
+
+// Export to window for global access
+window.Utils = Utils;

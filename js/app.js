@@ -17,6 +17,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnCreate = document.getElementById('btn-create-event');
     const btnExport = document.getElementById('btn-export-data');
     const formCreate = document.getElementById('form-create-event');
+    const modalEdit = document.getElementById('modal-edit-event');
+    const formEdit = document.getElementById('form-edit-event');
     const closeModalBtns = document.querySelectorAll('.close-modal');
 
     // Manage Team Elements
@@ -175,6 +177,33 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Edit Event Form Submit
+    formEdit.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const eventId = document.getElementById('edit-event-id').value;
+        const formData = new FormData(formEdit);
+        const eventData = {
+            title: formData.get('title'),
+            date: formData.get('date'),
+            time: formData.get('time'),
+            venue: formData.get('venue'),
+            capacity: parseInt(formData.get('capacity')) || null,
+            description: formData.get('description'),
+        };
+
+        try {
+            await db.updateEvent(eventId, eventData);
+            Utils.showToast('Event updated successfully!', 'success');
+            modalEdit.classList.add('hidden');
+            renderDashboard();
+        } catch (error) {
+            console.error(error);
+            Utils.showToast('Failed to update event.', 'error');
+        }
+    });
+
+    // Event Grid Click Handler
     eventsGrid.addEventListener('click', async (e) => {
         if (e.target.closest('.btn-delete-event')) {
             const btn = e.target.closest('.btn-delete-event');
@@ -198,6 +227,37 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (error) {
                 console.error(error);
                 Utils.showToast('Failed to delete event', 'error');
+            }
+        }
+
+        // Handle Edit Button
+        if (e.target.closest('.btn-edit-event')) {
+            const btn = e.target.closest('.btn-edit-event');
+            const id = btn.dataset.id;
+
+            try {
+                const events = await db.getAllEvents();
+                const event = events.find(e => e.id === id);
+
+                if (!event) {
+                    Utils.showToast('Event not found', 'error');
+                    return;
+                }
+
+                // Pre-fill form
+                document.getElementById('edit-event-id').value = id;
+                document.getElementById('edit-title').value = event.title;
+                document.getElementById('edit-date').value = event.date;
+                document.getElementById('edit-time').value = event.time || '';
+                document.getElementById('edit-venue').value = event.venue;
+                document.getElementById('edit-capacity').value = event.capacity || '';
+                document.getElementById('edit-description').value = event.description || '';
+
+                // Open modal
+                modalEdit.classList.remove('hidden');
+            } catch (error) {
+                console.error(error);
+                Utils.showToast('Failed to load event details', 'error');
             }
         }
     });
@@ -286,9 +346,14 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <i class="fa-regular fa-calendar"></i> ${Utils.formatDate(event.date)} &bull; ${event.venue}
                             </p>
                         </div>
-                        <button class="btn-delete-event btn-icon" data-id="${event.id}" title="Delete Event" style="color: var(--danger);">
-                            <i class="fa-solid fa-trash"></i>
-                        </button>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button class="btn-edit-event btn-icon" data-id="${event.id}" title="Edit Event" style="color: var(--primary);">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                            <button class="btn-delete-event btn-icon" data-id="${event.id}" title="Delete Event" style="color: var(--danger);">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
                     </div>
 
                     <div style="margin-bottom: 1.5rem; color: var(--text-muted); font-size: 0.9rem; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
