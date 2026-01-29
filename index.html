@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>College Event Manager | Admin</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@500;700;800&display=swap"
+        rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="container nav-container">
+            <a href="#" class="logo">
+                <i class="fa-solid fa-shapes"></i> EventFlow
+            </a>
+            <div class="nav-links">
+                <button id="btn-export-data" class="btn btn-secondary" title="Export Data JSON">
+                    <i class="fa-solid fa-download"></i> Output Data
+                </button>
+                <button id="btn-logout" class="btn btn-danger" style="margin-left: 0.5rem;" title="Sign Out">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container">
+
+        <!-- Welcome Section -->
+        <div class="mb-4">
+            <h1>Admin Dashboard</h1>
+            <p style="color: var(--text-muted)">Manage your college events, registrations, and attendance.</p>
+        </div>
+
+        <!-- Quick Actions & Stats -->
+        <section class="grid grid-cols-3 mb-4">
+
+            <!-- Create New Event Card -->
+            <div class="glass-panel"
+                style="padding: 1.5rem; display: flex; flex-direction: column; justify-content: center; align-items: flex-start;">
+                <h3 class="mb-4">Quick Actions</h3>
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                    <button id="btn-create-event" class="btn btn-primary">
+                        <i class="fa-solid fa-plus"></i> New Event
+                    </button>
+                    <a href="scanner.html" class="btn btn-secondary">
+                        <i class="fa-solid fa-qrcode"></i> Open Scanner
+                    </a>
+                </div>
+            </div>
+
+            <!-- Total Events Stat -->
+            <div class="glass-panel text-center" style="padding: 1.5rem;">
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">Total Events</p>
+                <h2 id="stat-total-events" style="font-size: 2.5rem; color: var(--accent);">0</h2>
+            </div>
+
+            <!-- Total Registrations Stat -->
+            <div class="glass-panel text-center" style="padding: 1.5rem;">
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">Total Registrations</p>
+                <h2 id="stat-total-regs" style="font-size: 2.5rem; color: var(--secondary);">0</h2>
+            </div>
+        </section>
+
+        <!-- Analytics Section -->
+        <section class="mb-4">
+            <div class="glass-panel" style="padding: 1.5rem;">
+                <h3 class="mb-4">Registration Analytics</h3>
+                <div style="height: 300px; width: 100%;">
+                    <canvas id="registrationsChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Events List -->
+        <section>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3>Your Events</h3>
+            </div>
+
+            <div id="events-grid" class="grid grid-cols-2">
+                <!-- Events will be injected here by JS -->
+                <!-- Loading State -->
+                <div class="glass-panel" style="padding: 2rem; text-align: center; grid-column: span 2;">
+                    <p style="color: var(--text-muted)">Loading events...</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Create Event Modal -->
+    <div id="modal-create-event" class="modal-overlay hidden">
+        <div class="modal-content glass-panel">
+            <div class="modal-header">
+                <h3>Create New Event</h3>
+                <button class="close-modal btn-icon"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="form-create-event">
+                <div class="form-group">
+                    <label class="form-label">Event Title</label>
+                    <input type="text" name="title" class="form-control" required
+                        placeholder="e.g. Tech Symposium 2026">
+                </div>
+
+                <div class="grid grid-cols-2" style="gap: 1rem;">
+                    <div class="form-group">
+                        <label class="form-label">Date</label>
+                        <input type="date" name="date" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Time</label>
+                        <input type="time" name="time" class="form-control" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Venue</label>
+                    <input type="text" name="venue" class="form-control" placeholder="e.g. Main Auditorium" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea name="description" class="form-control" rows="3"
+                        placeholder="Short description of the event..."></textarea>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary close-modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Event</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal CSS (Inline for now, should move to style.css) -->
+    <style>
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .modal-content {
+            width: 100%;
+            max-width: 500px;
+            background: var(--bg-card);
+            /* Override glass transparency for readability */
+            padding: 2rem;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .btn-icon {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.25rem;
+            cursor: pointer;
+        }
+
+        .btn-icon:hover {
+            color: white;
+        }
+    </style>
+
+    <!-- Scripts -->
+    <!-- Utils must be loaded first (global) -->
+    <script src="js/utils.js"></script>
+    <!-- App must be module to import firebase -->
+    <script type="module" src="js/app.js"></script>
+</body>
+
+</html>

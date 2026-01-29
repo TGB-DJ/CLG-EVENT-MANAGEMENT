@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Registration</title>
+
+    <!-- Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@500;700;800&display=swap"
+        rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- QR Code Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- HTML2Canvas for downloading ticket -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <style>
+        .ticket-container {
+            background: linear-gradient(135deg, var(--bg-card), var(--bg-dark));
+            border: 2px solid var(--primary);
+            border-radius: 1rem;
+            padding: 2rem;
+            max-width: 350px;
+            margin: 0 auto;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ticket-header {
+            border-bottom: 2px dashed var(--glass-border);
+            padding-bottom: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .qr-placeholder {
+            background: white;
+            padding: 10px;
+            border-radius: 0.5rem;
+            width: fit-content;
+            margin: 0 auto 1.5rem;
+        }
+
+        .success-animation {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .checkmark-circle {
+            width: 80px;
+            height: 80px;
+            background: var(--success);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto mb-4;
+            font-size: 3rem;
+            color: white;
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="navbar">
+        <div class="container nav-container">
+            <a href="index.html" class="logo">
+                <i class="fa-solid fa-shapes"></i> EventFlow
+            </a>
+        </div>
+    </nav>
+
+    <main class="container" style="max-width: 600px;">
+
+        <!-- Registration Form Section -->
+        <div id="registration-section" class="glass-panel" style="padding: 2rem;">
+            <h2 class="text-center mb-4">Event Registration</h2>
+
+            <!-- Event Details Summary -->
+            <div id="event-summary"
+                style="background: rgba(99, 102, 241, 0.1); padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem; border: 1px solid var(--primary);">
+                <h4 id="event-title-display">Loading Event...</h4>
+                <p id="event-date-display" style="font-size: 0.9rem; color: var(--text-muted);"></p>
+            </div>
+
+            <form id="form-register">
+                <input type="hidden" name="eventId" id="input-eventId">
+
+                <div class="form-group">
+                    <label class="form-label">Full Name</label>
+                    <input type="text" name="name" class="form-control" required placeholder="John Doe">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">College/Roll Number</label>
+                    <input type="text" name="rollNo" class="form-control" required placeholder="e.g. CS-2024-001">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Email Address</label>
+                    <input type="email" name="email" class="form-control" required placeholder="john@example.com">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Major/Department</label>
+                    <input type="text" name="dept" class="form-control" required placeholder="Computer Science">
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
+                    Confirm Registration
+                </button>
+            </form>
+        </div>
+
+        <!-- Success / Ticket Section (Hidden by default) -->
+        <div id="ticket-section" class="hidden">
+            <div class="success-animation mb-4">
+                <div class="checkmark-circle">
+                    <i class="fa-solid fa-check"></i>
+                </div>
+                <h2 class="mt-4">Registration Successful!</h2>
+                <p style="color: var(--text-muted)">Your ticket is ready. Please download/screenshot it.</p>
+            </div>
+
+            <div id="ticket-card" class="ticket-container">
+                <div class="ticket-header">
+                    <h3 id="ticket-event-name" style="color: var(--primary);">Event Name</h3>
+                    <p id="ticket-event-details" style="font-size: 0.8rem; color: var(--text-muted);">Date & Venue</p>
+                </div>
+
+                <div class="qr-placeholder">
+                    <div id="qrcode"></div>
+                </div>
+
+                <h4 id="ticket-student-name">Student Name</h4>
+                <p id="ticket-id" style="font-size: 0.8rem; color: var(--text-muted); font-family: monospace;">ID:
+                    123456</p>
+
+                <div style="margin-top: 1rem; font-size: 0.7rem; color: var(--text-muted);">
+                    Show this QR code at the entrance
+                </div>
+            </div>
+
+            <div class="text-center mt-4">
+                <button id="btn-download-ticket" class="btn btn-primary">
+                    <i class="fa-solid fa-download"></i> Download Ticket
+                </button>
+                <a href="index.html" class="btn btn-secondary" style="margin-left: 1rem;">
+                    Back to Home
+                </a>
+            </div>
+        </div>
+
+    </main>
+
+    <script src="js/utils.js"></script>
+    <script type="module" src="js/register.js"></script>
+</body>
+
+</html>

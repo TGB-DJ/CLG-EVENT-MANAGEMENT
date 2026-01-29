@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Scanner | Admin</title>
+
+    <!-- Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@500;700;800&display=swap"
+        rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- QR Scanner Lib -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+    <style>
+        .scanner-viewport {
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+            border-radius: 1rem;
+            overflow: hidden;
+            border: 2px solid var(--glass-border);
+            position: relative;
+            background: black;
+            min-height: 300px;
+        }
+
+        #reader {
+            width: 100%;
+        }
+
+        /* Customizing library UI slightly */
+        #reader__scan_region {
+            background: transparent !important;
+        }
+
+        .scan-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border: 50px solid rgba(0, 0, 0, 0.5);
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        /* Result Card */
+        .result-card {
+            max-width: 500px;
+            margin: 1.5rem auto;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            border-left: 5px solid transparent;
+        }
+
+        .result-card.success {
+            border-left-color: var(--success);
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .result-card.error {
+            border-left-color: var(--danger);
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .status-badge.success {
+            background: var(--success);
+            color: white;
+        }
+
+        .status-badge.error {
+            background: var(--danger);
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="navbar">
+        <div class="container nav-container">
+            <a href="index.html" class="logo">
+                <i class="fa-solid fa-shapes"></i> EventFlow
+            </a>
+            <div class="nav-links">
+                <a href="index.html" class="btn btn-secondary">
+                    <i class="fa-solid fa-arrow-left"></i> Dashboard
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container">
+        <div class="text-center mb-4">
+            <h2>QR Attendance Scanner</h2>
+            <p style="color: var(--text-muted)">Point camera at participant's ticket QR code.</p>
+        </div>
+
+        <!-- Scanner Area -->
+        <div class="scanner-viewport">
+            <div id="reader"></div>
+            <!-- Decorative corner markers could go here -->
+        </div>
+
+        <!-- Controls -->
+        <div class="text-center mt-4">
+            <button id="btn-start-scan" class="btn btn-primary">
+                <i class="fa-solid fa-camera"></i> Start Camera
+            </button>
+            <button id="btn-stop-scan" class="btn btn-danger hidden">
+                <i class="fa-solid fa-stop"></i> Stop
+            </button>
+        </div>
+
+        <!-- Result Display -->
+        <div id="result-container" class="glass-panel result-card hidden">
+            <span id="scan-status-badge" class="status-badge">Title</span>
+            <h3 id="scan-name">Student Name</h3>
+            <p id="scan-detail" style="color: var(--text-muted); font-size: 0.9rem;">ID: 12345</p>
+            <p id="scan-message" class="mt-4" style="font-weight: 500;">Message here</p>
+        </div>
+
+    </main>
+
+    <script src="js/utils.js"></script>
+    <script type="module" src="js/scanner.js"></script>
+</body>
+
+</html>
