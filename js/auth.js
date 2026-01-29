@@ -26,17 +26,27 @@ export class AuthService {
 
             if (user) {
                 // User is signed in. Check DB Role.
-                let profile = await dbManager.getUserProfile(user.uid);
-
-                if (!profile) {
-                    // First time login? Create profile
-                    profile = await dbManager.createUserProfile(user);
+                let profile = null;
+                try {
+                    profile = await dbManager.getUserProfile(user.uid);
+                    if (!profile) {
+                        profile = await dbManager.createUserProfile(user);
+                    }
+                } catch (e) {
+                    console.error("DB Error:", e);
+                    // Fallback if DB fails (e.g. permissions): treat as user
+                    profile = { role: 'user' };
+                    alert("Database Access Failed. Logging in with limited access. Please check Firestore Rules.");
                 }
 
                 console.log(`User: ${user.email}, Role: ${profile.role}`);
 
-                // 1. If we are on Login Page -> Redirect
-                if (window.location.pathname.includes('login.html')) {
+                // Detect if we are on login page (Logic: if form exists or path has login)
+                const isLoginPage = document.getElementById('form-login') || window.location.pathname.includes('login');
+                const isRoot = window.location.pathname === '/' || window.location.pathname.endsWith('/index.html') || window.location.pathname.endsWith('/event-manager/');
+
+                // 1. If on Login Page -> Redirect
+                if (isLoginPage) {
                     if (profile.role === 'admin') window.location.href = 'index.html';
                     else window.location.href = 'student.html';
                     return;
@@ -54,7 +64,7 @@ export class AuthService {
 
             } else {
                 // Not logged in
-                if (requiredRole) { // If page requires auth
+                if (requiredRole) {
                     window.location.href = 'login.html';
                 }
             }

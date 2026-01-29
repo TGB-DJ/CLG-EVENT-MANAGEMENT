@@ -1,33 +1,37 @@
-# Firebase Authentication Setup Guide 🔐
+# Firebase Authentication & Database Setup Guide 🔐
 
-If you cannot log in, it is 99% likely because the **Firebase Console** is not configured yet. Follow these exact steps:
+If you are stuck, check these 3 things in your [Firebase Console](https://console.firebase.google.com/).
 
-## 1. Enable Sign-In Methods (The Most Common Issue)
-You must explicitly "turn on" the login features in Firebase.
-1.  Go to the [Firebase Console](https://console.firebase.google.com/).
-2.  Select your project: **col-evt-mgr-2026**.
-3.  Click **Authentication** in the left sidebar.
-4.  Click **Get Started** (if you haven't already).
-5.  Click the **Sign-in method** tab.
-6.  **Enable Google**:
-    *   Click **Google**.
-    *   Toggle the **Enable** switch.
-    *   Select a **Support email** (your email).
-    *   Click **Save**.
-7.  **Enable Email/Password** (Optional, but recommended):
-    *   Click **Email/Password**.
-    *   Toggle **Enable**.
-    *   Click **Save**.
+## 1. Enable Firestore Database (CRITICAL) 🗄️
+If the database is "off", nothing will work.
+1.  Go to **Build** -> **Firestore Database** in the left menu.
+2.  Click **Create Database**.
+3.  **Location**: Choose one near you (e.g., `nam5` or `us-central`).
+4.  **Rules**: select **Start in Test Mode** (This is the easiest way to get started).
+5.  Click **Create**.
 
-## 2. Authorize Your Domain (For Google Login)
-If you are running on GitHub Pages (e.g., `pradeep.github.io`), Google blocks it by default.
-1.  Still in **Authentication**, click the **Settings** tab.
-2.  Click **Authorized domains**.
-3.  Click **Add domain**.
-4.  Copy the URL of your website (just the domain, e.g., `pradeep.github.io`) and paste it there.
-5.  Click **Add**.
+## 2. Enable Sign-In Methods 👤
+1.  Go to **Build** -> **Authentication**.
+2.  Click **Sign-in method** tab.
+3.  Ensure **Google** is enabled.
+4.  Ensure **Email/Password** is enabled.
 
-## 3. Important Note on "Email Login"
-*   The "Sign In with Email" form on your site is for **Existing Users Only**.
-*   It **DOES NOT** create an account.
-*   **Solution**: Always use **"Sign in / Sign up with Google"** for the first time. This *automatically* creates your account.
+## 3. Authorize Your Domain 🌐
+1.  In Authentication, click **Settings** tab -> **Authorized domains**.
+2.  Add your GitHub Pages domain (e.g., `yourname.github.io`).
+
+## 4. Check Security Rules (If Login Fails)
+If you didn't select "Test Mode", you might be locked out.
+1.  Go to **Firestore Database** -> **Rules** tab.
+2.  Paste this to allow everything (for testing):
+    ```
+    rules_version = '2';
+    service cloud.firestore {
+      match /databases/{database}/documents {
+        match /{document=**} {
+          allow read, write: if true;
+        }
+      }
+    }
+    ```
+3.  Click **Publish**.

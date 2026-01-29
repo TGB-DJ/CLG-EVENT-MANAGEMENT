@@ -120,7 +120,9 @@
             errorDiv.style.display = 'none';
             try {
                 await authService.loginWithGoogle();
-                Utils.showToast('Login Successful', 'success');
+                Utils.showToast('Login Successful. Redirecting...', 'success');
+                // The monitorAuth in auth.js should catch this, but just in case:
+                setTimeout(() => window.location.reload(), 1500); // Reload forces re-check
             } catch (error) {
                 console.error("Google Login Error:", error);
 
