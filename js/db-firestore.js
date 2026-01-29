@@ -175,18 +175,32 @@ export class FirestoreManager {
         return { id: docRef.id, ...newRegistration };
     }
 
-    async markAttendance(registrationId) {
+    // Get single registration by ID
+    async getRegistration(id) {
+        const docRef = doc(db, COLLECTIONS.REGISTRATIONS, id);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+            return { id: docSnap.id, ...docSnap.data() };
+        }
+        return null;
+    }
+
+    async markAttendance(registrationId, officerId) {
         const docRef = doc(db, COLLECTIONS.REGISTRATIONS, registrationId);
         const docSnap = await getDoc(docRef);
 
         if (!docSnap.exists()) throw new Error('Registration not found');
 
         const data = docSnap.data();
-        if (data.scanned) throw new Error('Already scanned in!');
+        if (data.attended || data.scanned) throw new Error('Already marked attendance!');
 
         const updateData = {
-            scanned: true,
-            scannedAt: new Date().toISOString()
+            attended: true,
+            scanned: true, // Keep for backwards compatibility
+            attendedAt: new Date().toISOString(),
+            scannedAt: new Date().toISOString(),
+            scannedBy: officerId
         };
 
         await updateDoc(docRef, updateData);

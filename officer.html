@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Officer Portal | EventFlow</title>
+
+    <!-- Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@500;700;800&display=swap"
+        rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- QR Scanner Library -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+</head>
+
+<body>
+
+    <!-- Auth Loader -->
+    <div id="auth-loader"
+        style="position: fixed; inset: 0; background: var(--bg-dark); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted);">
+        <i class="fa-solid fa-circle-notch fa-spin"
+            style="font-size: 3rem; color: var(--accent); margin-bottom: 1rem;"></i>
+        <p>Verifying Officer Access...</p>
+    </div>
+
+    <!-- Navbar -->
+    <nav class="navbar hidden" id="main-nav">
+        <div class="container nav-container">
+            <a href="#" class="logo">
+                <i class="fa-solid fa-qrcode"></i> Officer Portal
+            </a>
+            <div class="nav-links">
+                <button id="btn-logout" class="btn btn-danger" title="Sign Out">
+                    <i class="fa-solid fa-right-from-bracket"></i> Logout
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container hidden" id="main-content">
+
+        <!-- Profile Section -->
+        <div class="glass-panel" style="margin-bottom: 2rem;">
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <div
+                    style="width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--secondary)); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: bold; color: white;">
+                    O
+                </div>
+                <div>
+                    <h3 style="margin: 0; color: white;">Officer</h3>
+                    <p id="officer-email" style="margin: 0; color: var(--text-muted); font-size: 0.9rem;"></p>
+                    <span class="badge" style="background: var(--accent); margin-top: 0.5rem;">OFFICER ACCOUNT</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- QR Scanner Section -->
+        <section style="margin-bottom: 2rem;">
+            <h2 style="margin-bottom: 1rem;">
+                <i class="fa-solid fa-qrcode"></i> Scan Ticket
+            </h2>
+
+            <div class="glass-panel">
+                <!-- Scanner Container -->
+                <div id="qr-reader" style="width: 100%; max-width: 500px; margin: 0 auto 1rem;"></div>
+
+                <!-- Scanner Controls -->
+                <div style="display: flex; gap: 1rem; justify-content: center; margin-bottom: 1rem;">
+                    <button id="btn-start-scan" class="btn btn-primary">
+                        <i class="fa-solid fa-camera"></i> Start Scanner
+                    </button>
+                    <button id="btn-stop-scan" class="btn btn-secondary" style="display: none;">
+                        <i class="fa-solid fa-stop"></i> Stop Scanner
+                    </button>
+                </div>
+
+                <!-- Manual Entry -->
+                <div style="border-top: 1px solid var(--border); padding-top: 1rem; margin-top: 1rem;">
+                    <h4 style="margin-bottom: 0.5rem;">Manual Ticket Entry</h4>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <input type="text" id="manual-ticket-id" placeholder="Enter Ticket ID"
+                            style="flex: 1; padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-secondary); color: white;">
+                        <button id="btn-manual-verify" class="btn btn-primary">
+                            <i class="fa-solid fa-check"></i> Verify
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Scan Result -->
+                <div id="scan-result" style="margin-top: 1rem; display: none;"></div>
+            </div>
+        </section>
+
+        <!-- Statistics -->
+        <section style="margin-bottom: 2rem;">
+            <h2 style="margin-bottom: 1rem;">
+                <i class="fa-solid fa-chart-simple"></i> Today's Statistics
+            </h2>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                <div class="glass-panel" style="text-align: center;">
+                    <div style="font-size: 2rem; color: var(--primary); margin-bottom: 0.5rem;">
+                        <i class="fa-solid fa-qrcode"></i>
+                    </div>
+                    <div style="font-size: 2rem; font-weight: bold; color: white;" id="stat-scans">0</div>
+                    <div style="color: var(--text-muted); font-size: 0.9rem;">Total Scans</div>
+                </div>
+
+                <div class="glass-panel" style="text-align: center;">
+                    <div style="font-size: 2rem; color: var(--success); margin-bottom: 0.5rem;">
+                        <i class="fa-solid fa-check-circle"></i>
+                    </div>
+                    <div style="font-size: 2rem; font-weight: bold; color: white;" id="stat-verified">0</div>
+                    <div style="color: var(--text-muted); font-size: 0.9rem;">Verified</div>
+                </div>
+
+                <div class="glass-panel" style="text-align: center;">
+                    <div style="font-size: 2rem; color: var(--danger); margin-bottom: 0.5rem;">
+                        <i class="fa-solid fa-times-circle"></i>
+                    </div>
+                    <div style="font-size: 2rem; font-weight: bold; color: white;" id="stat-invalid">0</div>
+                    <div style="color: var(--text-muted); font-size: 0.9rem;">Invalid</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Recent Scans -->
+        <section>
+            <h2 style="margin-bottom: 1rem;">
+                <i class="fa-solid fa-history"></i> Recent Scans
+            </h2>
+
+            <div class="glass-panel">
+                <div id="recent-scans">
+                    <p style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                        No scans yet. Start scanning tickets above.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script src="js/utils.js"></script>
+    <script type="module" src="js/qr-scanner.js"></script>
+
+</body>
+
+</html>

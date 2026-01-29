@@ -155,6 +155,14 @@ document.addEventListener('DOMContentLoaded', () => {
     formCreate.addEventListener('submit', async (e) => {
         e.preventDefault();
 
+        const submitBtn = formCreate.querySelector('button[type="submit"]');
+        const originalBtnText = submitBtn.innerHTML;
+
+        // Prevent duplicate submissions
+        if (submitBtn.disabled) return;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Creating Event...';
+
         const formData = new FormData(formCreate);
         const eventData = {
             title: formData.get('title'),
@@ -166,14 +174,45 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         try {
-            await db.createEvent(eventData);
-            Utils.showToast('Event created successfully!', 'success');
+            const newEvent = await db.createEvent(eventData);
+
+            // Success animation - Confetti!
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 },
+                colors: ['#6366f1', '#8b5cf6', '#ec4899', '#10b981']
+            });
+
+            Utils.showToast('🎉 Event created successfully!', 'success');
+
+            // Send push notification to all users (if service worker registered)
+            try {
+                if ('serviceWorker' in navigator && 'PushManager' in window) {
+                    const registration = await navigator.serviceWorker.ready;
+                    if (registration.active) {
+                        // Trigger notification via service worker message
+                        registration.active.postMessage({
+                            type: 'NEW_EVENT',
+                            event: newEvent
+                        });
+                    }
+                }
+            } catch (notifError) {
+                console.log('Push notification not sent:', notifError);
+            }
+
             formCreate.reset();
             modalCreate.classList.add('hidden');
             renderDashboard();
+
         } catch (error) {
             console.error(error);
             Utils.showToast('Failed to create event.', 'error');
+        } finally {
+            // Re-enable button
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnText;
         }
     });
 

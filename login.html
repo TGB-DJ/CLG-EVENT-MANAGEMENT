@@ -5,22 +5,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login | EventFlow</title>
-
-    <!-- PWA Meta Tags -->
     <meta name="description" content="Login to College Event Management System">
     <meta name="theme-color" content="#6366f1">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3176/3176396.png">
-
-    <!-- Fonts -->
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@500;700;800&display=swap"
         rel="stylesheet">
-
-    <!-- Styles -->
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
     <style>
         body {
             display: flex;
@@ -39,12 +32,27 @@
             text-align: center;
             margin-bottom: 2rem;
         }
+
+        .password-toggle {
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 0.5rem;
+            transition: color 0.2s;
+        }
+
+        .password-toggle:hover {
+            color: var(--primary);
+        }
     </style>
 </head>
 
 <body>
-
-    <!-- Auth Loader (hidden on login page) -->
     <div id="auth-loader"
         style="position: fixed; inset: 0; background: var(--bg-dark); z-index: 9999; display: none; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted);">
         <i class="fa-solid fa-circle-notch fa-spin"
@@ -76,154 +84,107 @@
                 <div style="position: relative;">
                     <i class="fa-solid fa-lock"
                         style="position: absolute; left: 1rem; top: 1rem; color: var(--text-muted);"></i>
-                    <input type="password" name="password" class="form-control" style="padding-left: 2.5rem;" required
-                        placeholder="••••••••">
+                    <input type="password" id="password-input" name="password" class="form-control"
+                        style="padding-left: 2.5rem; padding-right: 3rem;" required placeholder="••••••••">
+                    <button type="button" id="toggle-password" class="password-toggle"
+                        aria-label="Toggle password visibility">
+                        <i class="fa-regular fa-eye"></i>
+                    </button>
                 </div>
             </div>
 
             <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
-                Sign In with Email
+                <i class="fa-solid fa-right-to-bracket"></i> Sign In
             </button>
-
-            <div style="display: flex; align-items: center; margin: 1.5rem 0; color: var(--text-muted);">
-                <div style="flex: 1; height: 1px; background: rgba(255,255,255,0.1);"></div>
-                <span style="padding: 0 0.5rem; font-size: 0.8rem;">OR</span>
-                <div style="flex: 1; height: 1px; background: rgba(255,255,255,0.1);"></div>
-            </div>
-
-            <button type="button" id="btn-google-login" class="btn btn-secondary"
-                style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: white; color: #1e293b; border: none;">
-                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google"
-                    style="width: 18px; height: 18px;">
-                Sign in / Sign up with Google
-            </button>
-
-            <!-- Error Display Area -->
-            <div id="login-error-msg"
-                style="margin-top: 1rem; color: var(--danger); font-size: 0.9rem; text-align: center; display: none; background: rgba(255, 0, 0, 0.1); padding: 0.5rem; border-radius: 0.5rem;">
-            </div>
         </form>
 
-        <div style="margin-top: 2rem; text-align: center; font-size: 0.85rem; color: var(--text-muted);">
-            <p>Admin? Ask for permission. Students? Just log in!</p>
+        <div style="text-align: center; margin: 1.5rem 0; color: var(--text-muted); font-size: 0.9rem;">OR</div>
+
+        <button id="btn-google-signin" class="btn btn-secondary"
+            style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+            <i class="fa-brands fa-google"></i> Continue with Google
+        </button>
+
+        <div id="error-msg"
+            style="display: none; margin-top: 1rem; padding: 1rem; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 0.5rem; color: #f87171; font-size: 0.9rem;">
         </div>
+
+        <p style="text-align: center; margin-top: 2rem; color: var(--text-muted); font-size: 0.85rem;">
+            Don't have an account? <a href="#" id="link-forgot-password" style="color: var(--primary);">Forgot
+                Password?</a>
+        </p>
     </div>
 
-    <div id="toast-container"></div>
-
-    <script src="js/utils.js"></script>
     <script type="module">
+        import { auth } from './js/firebase-config.js';
         import { authService } from './js/auth.js';
-
-        // Monitor
-        authService.monitorAuth(false);
+        import { Utils } from './js/utils.js';
 
         const form = document.getElementById('form-login');
-        const btn = form.querySelector('button[type="submit"]');
-        const btnGoogle = document.getElementById('btn-google-login');
-        const errorDiv = document.getElementById('login-error-msg');
+        const btnGoogle = document.getElementById('btn-google-signin');
+        const errorDiv = document.getElementById('error-msg');
+        const forgotLink = document.getElementById('link-forgot-password');
 
-        function showError(message) {
-            errorDiv.innerHTML = message; // Changed to innerHTML for formatting
-            errorDiv.style.display = 'block';
-            Utils.showToast(message.replace(/<[^>]*>?/gm, ''), 'error'); // Strip tags for toast
+        // Password visibility toggle
+        const togglePassword = document.getElementById('toggle-password');
+        const passwordInput = document.getElementById('password-input');
+
+        if (togglePassword && passwordInput) {
+            togglePassword.addEventListener('click', () => {
+                const type = passwordInput.type === 'password' ? 'text' : 'password';
+                passwordInput.type = type;
+
+                // Toggle icon
+                const icon = togglePassword.querySelector('i');
+                if (type === 'password') {
+                    icon.classList.remove('fa-eye-slash');
+                    icon.classList.add('fa-eye');
+                } else {
+                    icon.classList.remove('fa-eye');
+                    icon.classList.add('fa-eye-slash');
+                }
+            });
         }
 
-        // Google Login
-        btnGoogle.addEventListener('click', async () => {
-            console.log("Starting Google Login...");
-            errorDiv.style.display = 'none';
+        function showError(msg) {
+            errorDiv.innerHTML = msg;
+            errorDiv.style.display = 'block';
+        }
 
+        // Google Sign-In
+        btnGoogle.addEventListener('click', async () => {
+            errorDiv.style.display = 'none';
             try {
                 await authService.loginWithGoogle();
                 Utils.showToast('Login Successful. Redirecting...', 'success');
-                // The monitorAuth in auth.js should catch this, but just in case:
                 setTimeout(() => window.location.reload(), 1500);
             } catch (error) {
-                console.error("Google Login Detail Error:", error);
-                // Log full error object to help user debug in console
-                console.dir(error);
-
+                console.error("Google Login Error:", error);
                 let msg = `Login Failed: ${error.message}`;
-
-                if (error.code === 'auth/operation-not-supported-in-this-environment') {
-                    msg = '<b>Security Error:</b> You cannot login from a file (file://).<br>Please use a <b>Local Server</b> or <b>GitHub Pages</b>.<br>See TROUBLESHOOTING.md for details.';
-                } else if (error.code === 'auth/popup-closed-by-user') {
+                if (error.code === 'auth/popup-closed-by-user') {
                     msg = 'Sign-in cancelled by user.';
-                } else if (error.code === 'auth/unauthorized-domain') {
-                    msg = `<b>Domain Blocked (${window.location.hostname})</b><br>
-                           1. Go to Firebase Console > Auth > Settings > Authorized Domains<br>
-                           2. Add this domain: <b>${window.location.hostname}</b><br>
-                           See TROUBLESHOOTING.md`;
-                } else if (error.code === 'auth/network-request-failed') {
-                    msg = '<b>Network Error:</b> Check your internet connection. If you are offline, Google Login will not work.';
                 }
-
                 showError(msg);
-                // Also alert standard JS alert just in case CSS hides the div
-                if (error.code === 'auth/unauthorized-domain') {
-                    alert(`Domain Blocked: Add '${window.location.hostname}' to Firebase Console > Auth > Authorized Domains.`);
-                }
             }
         });
 
-        // Email Login
-        form.addEventListener('submit', async (e) => {
+        // Email/Password Login (Demo)
+        form.addEventListener('submit', (e) => {
             e.preventDefault();
-            errorDiv.style.display = 'none';
-            btn.disabled = true;
-            btn.textContent = 'Authenticating...';
-
-            const email = form.email.value;
-            const password = form.password.value;
-
-            try {
-                await authService.login(email, password);
-                Utils.showToast('Login Successful', 'success');
-                setTimeout(() => window.location.href = 'admin.html', 1000);
-            } catch (error) {
-                console.error(error);
-                let msg = "Login failed: " + error.code;
-
-                if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found') {
-                    msg = "Account not found or wrong password. If new, use Google Login.";
-                } else if (error.code === 'auth/wrong-password') {
-                    msg = "Invalid password.";
-                }
-
-                showError(msg);
-                btn.disabled = false;
-                btn.textContent = 'Sign In';
-            }
+            alert('This is a demo login form. Please use Google Sign-In for authentication.');
         });
 
-        // Password Reset Handler
-        const forgotPasswordLink = document.createElement('a');
-        forgotPasswordLink.href = '#';
-        forgotPasswordLink.textContent = 'Forgot Password?';
-        forgotPasswordLink.style.cssText = 'font-size: 0.875rem; color: var(--primary); text-decoration: none; display: block; text-align: right; margin-top: 0.5rem;';
-        document.querySelector('input[type="password"]').parentElement.appendChild(forgotPasswordLink);
-
-        forgotPasswordLink.addEventListener('click', async (e) => {
+        // Forgot Password
+        forgotLink.addEventListener('click', (e) => {
             e.preventDefault();
-            const email = prompt('Enter your email address to reset password:');
-            if (email) {
-                try {
-                    await authService.resetPassword(email);
-                    alert('Password reset email sent! Check your inbox.');
-                } catch (error) {
-                    console.error(error);
-                    alert('Error: ' + (error.message || 'Could not send reset email'));
-                }
-            }
+            alert('Password reset functionality coming soon! Please contact admin.');
         });
     </script>
 
-    <!-- Service Worker Registration for PWA -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
+                navigator.serviceWorker.register('./service-worker.js')
                     .then(reg => console.log('Service Worker registered'))
                     .catch(err => console.log('Service Worker registration failed:', err));
             });

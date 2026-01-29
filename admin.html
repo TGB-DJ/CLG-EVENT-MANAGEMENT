@@ -25,6 +25,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Confetti Animation -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 </head>
 
 <body>
@@ -105,6 +107,9 @@
             <div class="action-bar">
                 <h2 style="font-size: 1.5rem;">Manage Events</h2>
                 <div style="display: flex; gap: 1rem;">
+                    <button id="btn-promote-user" class="btn btn-secondary">
+                        <i class="fa-solid fa-user-shield"></i> Promote User
+                    </button>
                     <button id="btn-create-event" class="btn btn-primary">
                         <i class="fa-solid fa-plus"></i> Create Event
                     </button>
@@ -233,6 +238,16 @@
                     style="background: none; border: none; font-size: 1.5rem; color: var(--text-muted); cursor: pointer;">&times;</button>
             </div>
             <p style="color: var(--text-muted); margin-bottom: 1rem;">Promote users to Admins or demote them.</p>
+
+            <!-- Search Bar -->
+            <div class="form-group" style="margin-bottom: 1rem;">
+                <div style="position: relative;">
+                    <i class="fa-solid fa-search"
+                        style="position: absolute; left: 1rem; top: 1rem; color: var(--text-muted);"></i>
+                    <input type="text" id="user-search-input" class="form-control" style="padding-left: 2.5rem;"
+                        placeholder="Search by name or email...">
+                </div>
+            </div>
 
             <div id="users-list"
                 style="max-height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.75rem;">
