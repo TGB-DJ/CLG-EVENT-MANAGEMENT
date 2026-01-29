@@ -115,10 +115,19 @@
         </p>
     </div>
 
+    <!-- Load Utils First (Global) -->
+    <script src="js/utils.js"></script>
+
     <script type="module">
         import { auth } from './js/firebase-config.js';
         import { authService } from './js/auth.js';
-        import { Utils } from './js/utils.js';
+
+        // Start monitoring auth state (Redirects if already logged in)
+        authService.monitorAuth();
+
+        // Utils is now global from the script tag above
+        const Utils = window.Utils;
+        console.log("Login Script Loaded - VERSION 5 (Fixed Imports)");
 
         const form = document.getElementById('form-login');
         const btnGoogle = document.getElementById('btn-google-signin');
@@ -133,16 +142,8 @@
             togglePassword.addEventListener('click', () => {
                 const type = passwordInput.type === 'password' ? 'text' : 'password';
                 passwordInput.type = type;
-
-                // Toggle icon
                 const icon = togglePassword.querySelector('i');
-                if (type === 'password') {
-                    icon.classList.remove('fa-eye-slash');
-                    icon.classList.add('fa-eye');
-                } else {
-                    icon.classList.remove('fa-eye');
-                    icon.classList.add('fa-eye-slash');
-                }
+                icon.className = type === 'password' ? 'fa-regular fa-eye' : 'fa-regular fa-eye-slash';
             });
         }
 
@@ -153,10 +154,20 @@
 
         // Google Sign-In
         btnGoogle.addEventListener('click', async () => {
+            // alert("DEBUG: Google Button Clicked!"); // UNCOMMENT IF NEEDED
+            console.log("Google Button Clicked");
+
             errorDiv.style.display = 'none';
             try {
+                if (!authService) {
+                    alert("Critical Error: AuthService is missing!");
+                    throw new Error("AuthService not initialized");
+                }
+
                 await authService.loginWithGoogle();
-                Utils.showToast('Login Successful. Redirecting...', 'success');
+
+                if (Utils) Utils.showToast('Login Successful. Redirecting...', 'success');
+                // MonitorAuth logic generally handles the redirect, but we can double check
                 setTimeout(() => window.location.reload(), 1500);
             } catch (error) {
                 console.error("Google Login Error:", error);
@@ -168,10 +179,35 @@
             }
         });
 
-        // Email/Password Login (Demo)
-        form.addEventListener('submit', (e) => {
+        // Email/Password Login
+        form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            alert('This is a demo login form. Please use Google Sign-In for authentication.');
+
+            const email = form.email.value;
+            const password = form.password.value;
+            const btnSubmit = form.querySelector('button[type="submit"]');
+
+            if (errorDiv) errorDiv.style.display = 'none';
+            btnSubmit.disabled = true;
+            btnSubmit.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Signing In...';
+
+            try {
+                await authService.login(email, password);
+                Utils.showToast('Login Successful!', 'success');
+
+                // Fallback: If monitorAuth doesn't redirect within 2s, force it.
+                btnSubmit.innerHTML = '<i class="fa-solid fa-check"></i> Success!';
+                setTimeout(() => {
+                    window.location.assign('student.html');
+                }, 2000);
+            } catch (error) {
+                console.error("Login Error:", error);
+                let msg = "Login Failed: " + error.message;
+                if (error.code === 'auth/invalid-credential') msg = "Invalid email or password.";
+                showError(msg);
+                btnSubmit.disabled = false;
+                btnSubmit.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Sign In';
+            }
         });
 
         // Forgot Password

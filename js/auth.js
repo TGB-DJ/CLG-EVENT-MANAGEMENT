@@ -37,13 +37,11 @@ export class AuthService {
             const isLoginPage = document.getElementById('form-login');
 
             if (user) {
-                // User is signed in. Check DB Role.
+                // User is signed in. Sync Role & Profile.
                 let profile = null;
                 try {
-                    profile = await dbManager.getUserProfile(user.uid);
-                    if (!profile) {
-                        profile = await dbManager.createUserProfile(user);
-                    }
+                    // This handles creation AND auto-promotion if whitelisted
+                    profile = await dbManager.ensureAdminSync(user);
                 } catch (e) {
                     console.error("DB Error:", e);
                     profile = { role: 'user' };
@@ -61,10 +59,18 @@ export class AuthService {
 
                 // 2. Access Control
                 if (requiredRole) {
-                    if (requiredRole === 'admin' && profile.role !== 'admin') {
-                        // Not Allowed -> Redirect
-                        window.location.href = 'student.html';
-                        return; // Keep loader
+                    const myRole = profile.role || 'user';
+
+                    if (requiredRole === 'admin') {
+                        if (myRole !== 'admin') {
+                            window.location.href = 'student.html';
+                            return;
+                        }
+                    } else if (requiredRole === 'officer') {
+                        if (myRole !== 'admin' && myRole !== 'officer') {
+                            window.location.href = 'student.html';
+                            return;
+                        }
                     }
                 }
 

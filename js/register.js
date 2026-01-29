@@ -49,6 +49,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         eventTitleDisplay.textContent = currentEvent.title;
         eventDateDisplay.textContent = `${Utils.formatDate(currentEvent.date)} @ ${currentEvent.venue}`;
 
+        // CHECK FOR TICKET ID (View Mode)
+        const ticketId = urlParams.get('ticket');
+        if (ticketId) {
+            console.log("Viewing Ticket:", ticketId);
+            const registration = await db.getRegistration(ticketId);
+            if (registration) {
+                showTicket(registration);
+            } else {
+                Utils.showToast('Ticket not found!', 'error');
+            }
+        }
+
     } catch (e) {
         console.error(e);
         alert('Invalid Event. Redirecting to home.');

@@ -25,37 +25,51 @@ export class FirestoreManager {
         console.log("Firestore Manager Initialized");
     }
 
+    // Unified User Sync (Handles Creation & Promotion)
+    async ensureAdminSync(user) {
+        if (!user || !user.email) return null;
+
+        const docRef = doc(this.usersCol, user.uid);
+        const docSnap = await getDoc(docRef);
+
+        // Check Whitelist
+        const isAdminEmail = ADMIN_EMAILS.some(email =>
+            email.toLowerCase() === user.email.toLowerCase()
+        );
+
+        let profile;
+        if (docSnap.exists()) {
+            profile = { id: docSnap.id, ...docSnap.data() };
+
+            // AUTO-PROMOTE CHECK: If in whitelist but not admin, fix it.
+            if (isAdminEmail && profile.role !== 'admin') {
+                console.log(`✨ Auto-promoting ${user.email} to Admin (Whitelist Match)`);
+                await updateDoc(docRef, { role: 'admin' });
+                profile.role = 'admin';
+            }
+        } else {
+            // Create New
+            const userData = {
+                email: user.email,
+                displayName: user.displayName || user.email.split('@')[0],
+                photoURL: user.photoURL,
+                role: isAdminEmail ? 'admin' : 'user',
+                createdAt: new Date().toISOString()
+            };
+            await setDoc(docRef, userData);
+            profile = { id: user.uid, ...userData };
+            console.log(`👤 New User Created: ${user.email} (${profile.role})`);
+        }
+
+        return profile;
+    }
+
+    // --- User Management ---
     // --- User Management ---
     async getUserProfile(uid) {
         const docRef = doc(this.usersCol, uid);
         const docSnap = await getDoc(docRef);
         return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } : null;
-    }
-
-    async createUserProfile(user) {
-        const docRef = doc(this.usersCol, user.uid);
-
-        // Check if email is in admin whitelist (case-insensitive)
-        const isAdmin = ADMIN_EMAILS.some(email =>
-            email.toLowerCase() === user.email.toLowerCase()
-        );
-
-        const userData = {
-            email: user.email,
-            displayName: user.displayName || user.email.split('@')[0],
-            photoURL: user.photoURL,
-            role: isAdmin ? 'admin' : 'user', // Auto-promote if whitelisted
-            createdAt: new Date().toISOString()
-        };
-
-        // Use setDoc with merge to avoid overwriting if exists (idempotent)
-        await setDoc(docRef, userData, { merge: true });
-
-        if (isAdmin) {
-            console.log(`🎉 Admin account created for: ${user.email} `);
-        }
-
-        return { id: user.uid, ...userData };
     }
 
     async getAllUsers() {
@@ -198,13 +212,27 @@ export class FirestoreManager {
         const updateData = {
             attended: true,
             scanned: true, // Keep for backwards compatibility
-            attendedAt: new Date().toISOString(),
             scannedAt: new Date().toISOString(),
             scannedBy: officerId
         };
 
         await updateDoc(docRef, updateData);
-        return { id: registrationId, ...data, ...updateData };
+
+        // Fetch Event Details for confirmation
+        let eventName = 'Unknown Event';
+        if (data.eventId) {
+            const eventSnap = await getDoc(doc(db, COLLECTIONS.EVENTS, data.eventId));
+            if (eventSnap.exists()) {
+                eventName = eventSnap.data().title;
+            }
+        }
+
+        return {
+            id: registrationId,
+            studentName: data.name,
+            eventName: eventName,
+            ...updateData
+        };
     }
 
     // --- Utils ---

@@ -93,11 +93,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             users.forEach(user => {
-                const isAdmin = user.role === 'admin';
+                const role = user.role || 'user';
                 const isMe = currentUser && currentUser.uid === user.id;
 
                 const row = document.createElement('div');
                 row.style.cssText = 'display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 0.5rem;';
+
+                let badgeClass = 'badge-warning'; // User
+                if (role === 'admin') badgeClass = 'badge-success';
+                if (role === 'officer') badgeClass = 'badge-secondary';
 
                 row.innerHTML = `
                     <div style="display: flex; gap: 0.75rem; align-items: center;">
@@ -109,38 +113,38 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div style="font-size: 0.8rem; color: var(--text-muted);">${user.email}</div>
                         </div>
                     </div>
-                    <div>
-                        ${isAdmin
-                        ? `<span class="badge badge-success" style="margin-right: 0.5rem;">Admin</span>`
-                        : `<span class="badge badge-warning" style="margin-right: 0.5rem;">User</span>`
-                    }
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span class="badge ${badgeClass}" style="text-transform: capitalize;">${role}</span>
                         
                         ${!isMe ? `
-                            <button class="btn btn-sm ${isAdmin ? 'btn-danger' : 'btn-primary'} btn-toggle-role" data-id="${user.id}" data-role="${isAdmin ? 'user' : 'admin'}">
-                                ${isAdmin ? 'Demote' : 'Promote'}
-                            </button>
+                            <select class="form-control role-select" data-id="${user.id}" style="padding: 0.25rem; font-size: 0.85rem; width: auto;">
+                                <option value="user" ${role === 'user' ? 'selected' : ''}>Student</option>
+                                <option value="officer" ${role === 'officer' ? 'selected' : ''}>Officer</option>
+                                <option value="admin" ${role === 'admin' ? 'selected' : ''}>Admin</option>
+                            </select>
                         ` : ''}
                     </div>
                 `;
                 usersList.appendChild(row);
             });
 
-            // Add Listeners to dynamic buttons
-            document.querySelectorAll('.btn-toggle-role').forEach(btn => {
-                btn.addEventListener('click', async (e) => {
+            // Add Listeners to dropdowns
+            document.querySelectorAll('.role-select').forEach(select => {
+                select.addEventListener('change', async (e) => {
                     const uid = e.target.dataset.id;
-                    const newRole = e.target.dataset.role;
+                    const newRole = e.target.value;
+                    const originalValue = e.target.defaultValue; // To revert on error
 
                     e.target.disabled = true;
-                    e.target.textContent = '...';
 
                     try {
                         await db.updateUserRole(uid, newRole);
-                        Utils.showToast(`User role updated to ${newRole}`, 'success');
-                        renderUserList(); // Refresh
+                        Utils.showToast(`Role updated to ${newRole}`, 'success');
+                        renderUserList(); // Refresh UI
                     } catch (err) {
                         console.error(err);
                         Utils.showToast('Failed to update role', 'error');
+                        e.target.value = originalValue; // Revert
                         e.target.disabled = false;
                     }
                 });
