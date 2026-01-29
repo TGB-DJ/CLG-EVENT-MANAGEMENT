@@ -23,6 +23,10 @@ export class AuthService {
     monitorAuth(requiredRole = null) {
         onAuthStateChanged(auth, async (user) => {
             this.user = user;
+            const loader = document.getElementById('auth-loader');
+            const nav = document.getElementById('main-nav');
+            const main = document.getElementById('main-content');
+            const isLoginPage = document.getElementById('form-login');
 
             if (user) {
                 // User is signed in. Check DB Role.
@@ -34,19 +38,14 @@ export class AuthService {
                     }
                 } catch (e) {
                     console.error("DB Error:", e);
-                    // Fallback if DB fails (e.g. permissions): treat as user
                     profile = { role: 'user' };
-                    alert("Database Access Failed. Logging in with limited access. Please check Firestore Rules.");
                 }
 
                 console.log(`User: ${user.email}, Role: ${profile.role}`);
 
-                // Detect if we are on login page (Logic: if form exists or path has login)
-                const isLoginPage = document.getElementById('form-login') || window.location.pathname.includes('login');
-                const isRoot = window.location.pathname === '/' || window.location.pathname.endsWith('/index.html') || window.location.pathname.endsWith('/event-manager/');
-
                 // 1. If on Login Page -> Redirect
                 if (isLoginPage) {
+                    if (loader) loader.style.display = 'flex'; // Show loader during redirect
                     if (profile.role === 'admin') window.location.href = 'index.html';
                     else window.location.href = 'student.html';
                     return;
@@ -55,17 +54,27 @@ export class AuthService {
                 // 2. Access Control
                 if (requiredRole) {
                     if (requiredRole === 'admin' && profile.role !== 'admin') {
-                        // Not allowed, go to student portal
+                        // Not Allowed -> Redirect
                         window.location.href = 'student.html';
+                        return; // Keep loader
                     }
-                    // If requiredRole is 'user', admins are usually allowed too, or we strictly enforce.
-                    // For now, Admins can access everything, Users only student.html
                 }
+
+                // Success! Reveal Page
+                if (loader) loader.style.display = 'none';
+                if (nav) nav.classList.remove('hidden');
+                if (main) main.classList.remove('hidden');
 
             } else {
                 // Not logged in
-                if (requiredRole) {
+                if (!isLoginPage && requiredRole) {
+                    // Redirect to login
+                    console.log("No user, redirecting to login...");
                     window.location.href = 'login.html';
+                    // Keep loader visible during redirect
+                } else if (isLoginPage) {
+                    // On login page and not logged in - this is normal, hide loader
+                    if (loader) loader.style.display = 'none';
                 }
             }
         });

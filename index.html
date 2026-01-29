@@ -23,8 +23,16 @@
 
 <body>
 
-    <!-- Navbar -->
-    <nav class="navbar">
+    <!-- Auth Loader -->
+    <div id="auth-loader"
+        style="position: fixed; inset: 0; background: var(--bg-dark); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted);">
+        <i class="fa-solid fa-circle-notch fa-spin"
+            style="font-size: 3rem; color: var(--primary); margin-bottom: 1rem;"></i>
+        <p>Verifying Access...</p>
+    </div>
+
+    <!-- Navbar (Hidden initially) -->
+    <nav class="navbar hidden" id="main-nav">
         <div class="container nav-container">
             <a href="#" class="logo">
                 <i class="fa-solid fa-shapes"></i> EventFlow
@@ -40,8 +48,8 @@
         </div>
     </nav>
 
-    <!-- Main Content -->
-    <main class="container">
+    <!-- Main Content (Hidden initially) -->
+    <main class="container hidden" id="main-content">
 
         <!-- Welcome Section -->
         <div class="mb-4">

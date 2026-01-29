@@ -38,6 +38,14 @@
 
 <body>
 
+    <!-- Auth Loader (hidden on login page) -->
+    <div id="auth-loader"
+        style="position: fixed; inset: 0; background: var(--bg-dark); z-index: 9999; display: none; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted);">
+        <i class="fa-solid fa-circle-notch fa-spin"
+            style="font-size: 3rem; color: var(--primary); margin-bottom: 1rem;"></i>
+        <p>Redirecting...</p>
+    </div>
+
     <div class="glass-panel login-card">
         <div class="login-header">
             <h1 class="logo" style="margin-bottom: 0.5rem; font-size: 2rem;">
