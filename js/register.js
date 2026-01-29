@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- Initialization ---
     if (!eventId) {
         alert('No event specified! Redirecting to home.');
-        window.location.href = 'index.html';
+        window.location.href = 'admin.html';
         return;
     }
 
@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch (e) {
         console.error(e);
         alert('Invalid Event. Redirecting to home.');
-        window.location.href = 'index.html';
+        window.location.href = 'admin.html';
     }
 
     // --- Event Listeners ---

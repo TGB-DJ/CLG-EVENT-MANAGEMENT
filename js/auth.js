@@ -46,7 +46,7 @@ export class AuthService {
                 // 1. If on Login Page -> Redirect
                 if (isLoginPage) {
                     if (loader) loader.style.display = 'flex'; // Show loader during redirect
-                    if (profile.role === 'admin') window.location.href = 'index.html';
+                    if (profile.role === 'admin') window.location.href = 'admin.html';
                     else window.location.href = 'student.html';
                     return;
                 }
