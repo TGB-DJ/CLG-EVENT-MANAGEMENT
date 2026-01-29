@@ -51,75 +51,72 @@
 
         <!-- Quick Actions & Stats -->
         <section class="grid grid-cols-3 mb-4">
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+                <div class="stat-card glass-panel">
+                    <div class="stat-icon" style="background: rgba(236, 72, 153, 0.2); color: var(--primary);">
+                        <i class="fa-regular fa-calendar-check"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="stat-total-events">0</h3>
+                        <p>Total Events</p>
+                    </div>
+                </div>
 
-            <!-- Create New Event Card -->
-            <div class="glass-panel"
-                style="padding: 1.5rem; display: flex; flex-direction: column; justify-content: center; align-items: flex-start;">
-                <h3 class="mb-4">Quick Actions</h3>
-                <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                <div class="stat-card glass-panel">
+                    <div class="stat-icon" style="background: rgba(16, 185, 129, 0.2); color: var(--success);">
+                        <i class="fa-solid fa-users"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="stat-total-regs">0</h3>
+                        <p>Total Registrations</p>
+                    </div>
+                </div>
+
+                <!-- Analytics Chart -->
+                <div class="glass-panel"
+                    style="grid-column: span 2; min-height: 300px; padding: 1.5rem; display: flex; flex-direction: column;">
+                    <h4 style="margin-bottom: 1rem; color: var(--text-muted);">Registration Analytics</h4>
+                    <div style="flex: 1; position: relative;">
+                        <canvas id="registrationsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Bar -->
+            <div class="action-bar">
+                <h2 style="font-size: 1.5rem;">Manage Events</h2>
+                <div style="display: flex; gap: 1rem;">
                     <button id="btn-create-event" class="btn btn-primary">
-                        <i class="fa-solid fa-plus"></i> New Event
+                        <i class="fa-solid fa-plus"></i> Create Event
                     </button>
-                    <a href="scanner.html" class="btn btn-secondary">
-                        <i class="fa-solid fa-qrcode"></i> Open Scanner
-                    </a>
+                    <button id="btn-export-data" class="btn btn-secondary">
+                        <i class="fa-solid fa-download"></i> Export Data
+                    </button>
                 </div>
             </div>
 
-            <!-- Total Events Stat -->
-            <div class="glass-panel text-center" style="padding: 1.5rem;">
-                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">Total Events</p>
-                <h2 id="stat-total-events" style="font-size: 2.5rem; color: var(--accent);">0</h2>
-            </div>
-
-            <!-- Total Registrations Stat -->
-            <div class="glass-panel text-center" style="padding: 1.5rem;">
-                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">Total Registrations</p>
-                <h2 id="stat-total-regs" style="font-size: 2.5rem; color: var(--secondary);">0</h2>
-            </div>
-        </section>
-
-        <!-- Analytics Section -->
-        <section class="mb-4">
-            <div class="glass-panel" style="padding: 1.5rem;">
-                <h3 class="mb-4">Registration Analytics</h3>
-                <div style="height: 300px; width: 100%;">
-                    <canvas id="registrationsChart"></canvas>
-                </div>
-            </div>
-        </section>
-
-        <!-- Events List -->
-        <section>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                <h3>Your Events</h3>
-            </div>
-
+            <!-- Events Grid -->
             <div id="events-grid" class="grid grid-cols-2">
-                <!-- Events will be injected here by JS -->
-                <!-- Loading State -->
-                <div class="glass-panel" style="padding: 2rem; text-align: center; grid-column: span 2;">
-                    <p style="color: var(--text-muted)">Loading events...</p>
-                </div>
+                <!-- Events injected here by JS -->
             </div>
-        </section>
     </main>
 
-    <!-- Create Event Modal -->
-    <div id="modal-create-event" class="modal-overlay hidden">
+    <!-- Modal: Create Event -->
+    <div id="modal-create-event" class="modal hidden">
         <div class="modal-content glass-panel">
             <div class="modal-header">
-                <h3>Create New Event</h3>
-                <button class="close-modal btn-icon"><i class="fa-solid fa-xmark"></i></button>
+                <h2>Create New Event</h2>
+                <button class="close-modal">&times;</button>
             </div>
             <form id="form-create-event">
                 <div class="form-group">
                     <label class="form-label">Event Title</label>
                     <input type="text" name="title" class="form-control" required
-                        placeholder="e.g. Tech Symposium 2026">
+                        placeholder="e.g. Annual Tech Symposium">
                 </div>
 
-                <div class="grid grid-cols-2" style="gap: 1rem;">
+                <div class="grid grid-cols-2">
                     <div class="form-group">
                         <label class="form-label">Date</label>
                         <input type="date" name="date" class="form-control" required>
@@ -132,20 +129,42 @@
 
                 <div class="form-group">
                     <label class="form-label">Venue</label>
-                    <input type="text" name="venue" class="form-control" placeholder="e.g. Main Auditorium" required>
+                    <input type="text" name="venue" class="form-control" required placeholder="e.g. Main Auditorium">
                 </div>
 
                 <div class="form-group">
                     <label class="form-label">Description</label>
                     <textarea name="description" class="form-control" rows="3"
-                        placeholder="Short description of the event..."></textarea>
+                        placeholder="Event details..."></textarea>
                 </div>
 
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary close-modal">Cancel</button>
+                <div style="text-align: right; margin-top: 1.5rem;">
+                    <button type="button" class="btn btn-secondary close-modal"
+                        style="margin-right: 0.5rem;">Cancel</button>
                     <button type="submit" class="btn btn-primary">Create Event</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Modal: Manage Users -->
+    <div id="modal-manage-users" class="modal hidden">
+        <div class="modal-content glass-panel" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2>Manage Team</h2>
+                <button class="close-modal-users"
+                    style="background: none; border: none; font-size: 1.5rem; color: var(--text-muted); cursor: pointer;">&times;</button>
+            </div>
+            <p style="color: var(--text-muted); margin-bottom: 1rem;">Promote users to Admins or demote them.</p>
+
+            <div id="users-list"
+                style="max-height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.75rem;">
+                <div style="text-align: center; color: var(--text-muted); padding: 1rem;">Loading users...</div>
+            </div>
+
+            <div style="text-align: right; margin-top: 1.5rem;">
+                <button type="button" class="btn btn-secondary close-modal-users">Close</button>
+            </div>
         </div>
     </div>
 

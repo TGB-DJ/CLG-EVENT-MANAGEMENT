@@ -40,6 +40,20 @@ export class FirestoreManager {
         return { id: user.uid, ...userData };
     }
 
+    async getAllUsers() {
+        const querySnapshot = await getDocs(this.usersCol);
+        const users = [];
+        querySnapshot.forEach((doc) => {
+            users.push({ id: doc.id, ...doc.data() });
+        });
+        return users;
+    }
+
+    async updateUserRole(uid, newRole) {
+        const docRef = doc(this.usersCol, uid);
+        await updateDoc(docRef, { role: newRole });
+    }
+
     // --- Events ---
     async getEvents() {
         const querySnapshot = await getDocs(collection(db, COLLECTIONS.EVENTS));

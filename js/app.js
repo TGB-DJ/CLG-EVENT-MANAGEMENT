@@ -19,6 +19,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const formCreate = document.getElementById('form-create-event');
     const closeModalBtns = document.querySelectorAll('.close-modal');
 
+    // Manage Team Elements
+    const btnManageTeam = document.getElementById('btn-manage-team');
+    const modalManageUsers = document.getElementById('modal-manage-users');
+    const closeUserModalBtns = document.querySelectorAll('.close-modal-users');
+    const usersList = document.getElementById('users-list');
+
     const statEvents = document.getElementById('stat-total-events');
     const statRegs = document.getElementById('stat-total-regs');
 
@@ -27,6 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Event Listeners ---
 
+    // Create Event Modal
     btnCreate.addEventListener('click', () => {
         modalCreate.classList.remove('hidden');
     });
@@ -42,6 +49,99 @@ document.addEventListener('DOMContentLoaded', () => {
             modalCreate.classList.add('hidden');
         }
     });
+
+    // Manage Team Modal
+    if (btnManageTeam) {
+        btnManageTeam.addEventListener('click', () => {
+            modalManageUsers.classList.remove('hidden');
+            renderUserList();
+        });
+
+        closeUserModalBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                modalManageUsers.classList.add('hidden');
+            });
+        });
+
+        modalManageUsers.addEventListener('click', (e) => {
+            if (e.target === modalManageUsers) {
+                modalManageUsers.classList.add('hidden');
+            }
+        });
+    }
+
+    async function renderUserList() {
+        usersList.innerHTML = '<div style="text-align: center; color: var(--text-muted);">Loading...</div>';
+        try {
+            const users = await db.getAllUsers();
+            const currentUser = authService.user;
+
+            usersList.innerHTML = '';
+
+            if (users.length === 0) {
+                usersList.innerHTML = '<p class="text-center">No users found.</p>';
+                return;
+            }
+
+            users.forEach(user => {
+                const isAdmin = user.role === 'admin';
+                const isMe = currentUser && currentUser.uid === user.id;
+
+                const row = document.createElement('div');
+                row.style.cssText = 'display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 0.5rem;';
+
+                row.innerHTML = `
+                    <div style="display: flex; gap: 0.75rem; align-items: center;">
+                        <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--secondary); display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                            ${user.photoURL ? `<img src="${user.photoURL}" style="width: 100%; height: 100%; object-fit: cover;">` : `<span style="font-size: 0.8rem; color: #fff;">${(user.displayName || 'U').charAt(0).toUpperCase()}</span>`}
+                        </div>
+                        <div>
+                            <div style="font-weight: 500; font-size: 0.9rem;">${user.displayName || 'Unknown User'} ${isMe ? '(You)' : ''}</div>
+                            <div style="font-size: 0.8rem; color: var(--text-muted);">${user.email}</div>
+                        </div>
+                    </div>
+                    <div>
+                        ${isAdmin
+                        ? `<span class="badge badge-success" style="margin-right: 0.5rem;">Admin</span>`
+                        : `<span class="badge badge-warning" style="margin-right: 0.5rem;">User</span>`
+                    }
+                        
+                        ${!isMe ? `
+                            <button class="btn btn-sm ${isAdmin ? 'btn-danger' : 'btn-primary'} btn-toggle-role" data-id="${user.id}" data-role="${isAdmin ? 'user' : 'admin'}">
+                                ${isAdmin ? 'Demote' : 'Promote'}
+                            </button>
+                        ` : ''}
+                    </div>
+                `;
+                usersList.appendChild(row);
+            });
+
+            // Add Listeners to dynamic buttons
+            document.querySelectorAll('.btn-toggle-role').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const uid = e.target.dataset.id;
+                    const newRole = e.target.dataset.role;
+
+                    e.target.disabled = true;
+                    e.target.textContent = '...';
+
+                    try {
+                        await db.updateUserRole(uid, newRole);
+                        Utils.showToast(`User role updated to ${newRole}`, 'success');
+                        renderUserList(); // Refresh
+                    } catch (err) {
+                        console.error(err);
+                        Utils.showToast('Failed to update role', 'error');
+                        e.target.disabled = false;
+                    }
+                });
+            });
+
+        } catch (error) {
+            console.error(error);
+            usersList.innerHTML = '<p class="text-center text-danger">Error loading users.</p>';
+        }
+    }
 
     formCreate.addEventListener('submit', async (e) => {
         e.preventDefault();

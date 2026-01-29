@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Login | College Event Manager</title>
+    <title>Login | EventFlow</title>
 
     <!-- Fonts -->
     <link
@@ -43,7 +43,7 @@
             <h1 class="logo" style="margin-bottom: 0.5rem; font-size: 2rem;">
                 <i class="fa-solid fa-shapes"></i> EventFlow
             </h1>
-            <p style="color: var(--text-muted)">Admin Access Portal</p>
+            <p style="color: var(--text-muted)">Student & Admin Portal</p>
         </div>
 
         <form id="form-login">
@@ -81,14 +81,17 @@
                 style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: white; color: #1e293b; border: none;">
                 <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google"
                     style="width: 18px; height: 18px;">
-                Sign in with Google
+                Sign in / Sign up with Google
             </button>
+
+            <!-- Error Display Area -->
+            <div id="login-error-msg"
+                style="margin-top: 1rem; color: var(--danger); font-size: 0.9rem; text-align: center; display: none; background: rgba(255, 0, 0, 0.1); padding: 0.5rem; border-radius: 0.5rem;">
+            </div>
         </form>
 
         <div style="margin-top: 2rem; text-align: center; font-size: 0.85rem; color: var(--text-muted);">
-            <p>Don't have an account? Ask your administrator.</p>
-            <!-- In a real app we would have signup, but for this managed system we just use login -->
-            <!-- Temporary helper for demo -->
+            <p>Admin? Ask for permission. Students? Just log in!</p>
         </div>
     </div>
 
@@ -98,28 +101,47 @@
     <script type="module">
         import { authService } from './js/auth.js';
 
-        // Monitor (false = not protected, so this page doesn't kick us out if not logged in)
+        // Monitor
         authService.monitorAuth(false);
 
         const form = document.getElementById('form-login');
-        const btn = form.querySelector('button[type="submit"]');
+        const btn = form.querySelector('button[type="submit"]);
         const btnGoogle = document.getElementById('btn-google-login');
+        const errorDiv = document.getElementById('login-error-msg');
+
+        function showError(message) {
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            Utils.showToast(message, 'error');
+        }
 
         // Google Login
         btnGoogle.addEventListener('click', async () => {
+            errorDiv.style.display = 'none';
             try {
                 await authService.loginWithGoogle();
                 Utils.showToast('Login Successful', 'success');
-                // Redirect handled by monitorAuth
             } catch (error) {
-                console.error(error);
-                Utils.showToast('Google Sign-In failed.', 'error');
+                console.error("Google Login Error:", error);
+
+                let msg = `Login Failed: ${error.message}`;
+
+                if (error.code === 'auth/operation-not-supported-in-this-environment') {
+                    msg = 'Security Error: You cannot login from a file (file://). Please use a Local Server or GitHub Pages.';
+                } else if (error.code === 'auth/popup-closed-by-user') {
+                    msg = 'Sign-in cancelled by user.';
+                } else if (error.code === 'auth/unauthorized-domain') {
+                    msg = `Domain Blocked: Go to Firebase Console > Auth > Settings > Authorized Domains and add this website domain: ${window.location.hostname}`;
+                }
+
+                showError(msg);
             }
         });
 
         // Email Login
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
+            errorDiv.style.display = 'none';
             btn.disabled = true;
             btn.textContent = 'Authenticating...';
 
@@ -132,9 +154,9 @@
                 setTimeout(() => window.location.href = 'index.html', 1000);
             } catch (error) {
                 console.error(error);
-                let msg = "Login failed.";
+                let msg = "Login failed: " + error.code;
                 if (error.code === 'auth/invalid-credential') msg = "Invalid email or password.";
-                Utils.showToast(msg, 'error');
+                showError(msg);
                 btn.disabled = false;
                 btn.textContent = 'Sign In';
             }
