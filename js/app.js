@@ -457,14 +457,18 @@ document.addEventListener('DOMContentLoaded', () => {
                         ${event.description || 'No description provided.'}
                     </div>
 
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 0.5rem;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; margin-bottom: 1.5rem; background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 0.5rem;">
                         <div class="text-center">
-                            <span style="display: block; font-size: 1.25rem; font-weight: 700; color: var(--secondary);">${eventRegs.length}</span>
-                            <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Registered</span>
+                             <span style="display: block; font-size: 1.1rem; font-weight: 700; color: var(--text-light);">${event.capacity || '∞'}</span>
+                             <span style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Total</span>
                         </div>
                         <div class="text-center">
-                            <span style="display: block; font-size: 1.25rem; font-weight: 700; color: var(--success);">${scannedCount}</span>
-                            <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Attended</span>
+                            <span style="display: block; font-size: 1.1rem; font-weight: 700; color: var(--secondary);">${eventRegs.length}</span>
+                            <span style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Filled</span>
+                        </div>
+                        <div class="text-center">
+                            <span style="display: block; font-size: 1.1rem; font-weight: 700; color: var(--success);">${scannedCount}</span>
+                            <span style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Attended</span>
                         </div>
                     </div>
 

@@ -229,6 +229,28 @@
                 upcomingEvents.forEach(event => {
                     const alreadyRegistered = myEventIds.includes(event.id);
 
+                    // Calculate Availability
+                    const regCount = allRegs.filter(r => r.eventId === event.id).length;
+                    const capacity = event.capacity ? parseInt(event.capacity) : null;
+                    let availableText = '';
+                    let isFull = false;
+
+                    if (capacity) {
+                        const available = capacity - regCount;
+                        if (available <= 0) {
+                            isFull = true;
+                            availableText = `
+                                <span style="display: block; margin-bottom: 0.25rem; color: var(--text-muted); font-size: 0.85rem;">Capacity: ${capacity}</span>
+                                <span style="color: var(--danger); font-weight: bold;"><i class="fa-solid fa-circle-xmark"></i> Sold Out</span>
+                            `;
+                        } else {
+                            availableText = `
+                                <span style="margin-right: 0.75rem; color: var(--text-muted); font-size: 0.85rem;">Total: ${capacity}</span>
+                                <span style="color: var(--success); font-weight: 500;"><i class="fa-solid fa-user-check"></i> Available: ${available}</span>
+                            `;
+                        }
+                    }
+
                     const card = document.createElement('div');
                     card.className = 'glass-panel';
                     card.style.padding = '1.5rem';
@@ -243,17 +265,24 @@
                         <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">
                             <i class="fa-solid fa-location-dot"></i> ${event.venue}
                         </p>
-                        ${event.capacity ? `
-                            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">
-                                <i class="fa-solid fa-users"></i> Capacity: ${event.capacity}
-                            </p>
+                        
+                        ${capacity ? `
+                            <div style="margin-bottom: 1rem; padding: 0.5rem; background: rgba(255,255,255,0.05); border-radius: 0.5rem; display: flex; align-items: center;">
+                                ${availableText}
+                            </div>
                         ` : ''}
+
                         <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem; line-height: 1.5;">
                             ${event.description || 'No description available.'}
                         </p>
+                        
                         ${alreadyRegistered ? `
                             <button class="btn btn-secondary" disabled style="width: 100%; opacity: 0.6; cursor: not-allowed;">
                                 <i class="fa-solid fa-check"></i> Already Registered
+                            </button>
+                        ` : isFull ? `
+                             <button class="btn" disabled style="width: 100%; background: var(--glass-border); color: var(--text-muted); cursor: not-allowed;">
+                                <i class="fa-solid fa-ban"></i> Event Full
                             </button>
                         ` : `
                             <a href="register.html?event=${event.id}" class="btn btn-primary" style="width: 100%; text-decoration: none; display: inline-block; text-align: center;">
