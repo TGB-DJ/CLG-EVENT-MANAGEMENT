@@ -27,6 +27,10 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Confetti Animation -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Export Libs -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 </head>
 
 <body>
@@ -96,7 +100,16 @@
                 <!-- Analytics Chart -->
                 <div class="glass-panel"
                     style="grid-column: span 2; min-height: 300px; padding: 1.5rem; display: flex; flex-direction: column;">
-                    <h4 style="margin-bottom: 1rem; color: var(--text-muted);">Registration Analytics</h4>
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h4 style="color: var(--text-muted); margin: 0;">Registration Analytics</h4>
+                        <select id="analytics-time-filter" class="form-control"
+                            style="width: auto; padding: 0.25rem 0.5rem; font-size: 0.85rem;">
+                            <option value="all">All Time</option>
+                            <option value="30">Last 30 Days</option>
+                            <option value="7">Last 7 Days</option>
+                        </select>
+                    </div>
                     <div style="flex: 1; position: relative;">
                         <canvas id="registrationsChart"></canvas>
                     </div>
@@ -223,29 +236,111 @@
         </div>
     </div>
 
+    <!-- Modal: Event Details -->
+    <div id="modal-event-details" class="modal hidden">
+        <div class="modal-content glass-panel"
+            style="max-width: 900px; max-height: 90vh; display: flex; flex-direction: column;">
+            <div class="modal-header">
+                <div>
+                    <h2 id="detail-event-title" style="margin-bottom: 0.25rem;">Event Title</h2>
+                    <p id="detail-event-meta" style="color: var(--text-muted); font-size: 0.9rem;">Date &bull; Venue</p>
+                </div>
+                <button class="close-modal-details"
+                    style="background: none; border: none; font-size: 1.5rem; color: var(--text-muted); cursor: pointer;">&times;</button>
+            </div>
+
+            <!-- Event Specific Stats -->
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2rem;">
+                <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 0.5rem; text-align: center;">
+                    <h3 id="detail-stat-registered"
+                        style="color: var(--secondary); font-size: 1.5rem; margin-bottom: 0.25rem;">0</h3>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Registered</p>
+                </div>
+                <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 0.5rem; text-align: center;">
+                    <h3 id="detail-stat-attended"
+                        style="color: var(--success); font-size: 1.5rem; margin-bottom: 0.25rem;">0</h3>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Attended</p>
+                </div>
+                <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 0.5rem; text-align: center;">
+                    <h3 id="detail-stat-pending"
+                        style="color: var(--text-light); font-size: 1.5rem; margin-bottom: 0.25rem;">0</h3>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Pending</p>
+                </div>
+            </div>
+
+            <!-- Student List Header -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 style="font-size: 1.1rem;">Registered Students</h3>
+                <div style="position: relative; width: 250px;">
+                    <i class="fa-solid fa-search"
+                        style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.8rem;"></i>
+                    <input type="text" id="detail-search-input" class="form-control"
+                        style="padding-left: 2rem; font-size: 0.9rem;" placeholder="Search students...">
+                </div>
+            </div>
+
+            <!-- Student Table -->
+            <div class="table-container"
+                style="flex: 1; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 0.5rem; min-height: 300px;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead style="position: sticky; top: 0; background: var(--bg-card); z-index: 10;">
+                        <tr style="text-align: left; border-bottom: 1px solid var(--glass-border);">
+                            <th style="padding: 1rem;">Student</th>
+                            <th style="padding: 1rem;">Email</th>
+                            <th style="padding: 1rem;">Reg. Date & Time</th>
+                            <th style="padding: 1rem; text-align: right;">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="detail-students-list">
+                        <!-- Injected via JS -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="detail-loading" style="text-align: center; padding: 2rem; display: none;">
+                <i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem; color: var(--primary);"></i>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal: Manage Users -->
     <div id="modal-manage-users" class="modal hidden">
-        <div class="modal-content glass-panel" style="max-width: 600px;">
+        <div class="modal-content glass-panel" style="max-width: 900px;">
             <div class="modal-header">
                 <h2>Manage Team</h2>
                 <button class="close-modal-users"
                     style="background: none; border: none; font-size: 1.5rem; color: var(--text-muted); cursor: pointer;">&times;</button>
             </div>
-            <p style="color: var(--text-muted); margin-bottom: 1rem;">Promote users to Admins or demote them.</p>
 
-            <!-- Search Bar -->
-            <div class="form-group" style="margin-bottom: 1rem;">
-                <div style="position: relative;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <p style="color: var(--text-muted); margin: 0;">Manage user roles and permissions.</p>
+                <div style="position: relative; width: 300px;">
                     <i class="fa-solid fa-search"
-                        style="position: absolute; left: 1rem; top: 1rem; color: var(--text-muted);"></i>
+                        style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-muted);"></i>
                     <input type="text" id="user-search-input" class="form-control" style="padding-left: 2.5rem;"
-                        placeholder="Search by name or email...">
+                        placeholder="Search users...">
                 </div>
             </div>
 
-            <div id="users-list"
-                style="max-height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.75rem;">
-                <div style="text-align: center; color: var(--text-muted); padding: 1rem;">Loading users...</div>
+            <div class="table-container"
+                style="max-height: 500px; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 0.5rem;">
+                <table style="width: 100%; border-collapse: collapse; min-width: 600px;">
+                    <thead style="position: sticky; top: 0; background: var(--bg-card); z-index: 10;">
+                        <tr style="text-align: left; border-bottom: 1px solid var(--glass-border);">
+                            <th style="padding: 1rem;">User</th>
+                            <th style="padding: 1rem;">Role</th>
+                            <th style="padding: 1rem;">Joined</th>
+                            <th style="padding: 1rem; text-align: right;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-list-body">
+                        <!-- Users injected here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="users-loading" style="text-align: center; padding: 2rem; display: none;">
+                <i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem; color: var(--primary);"></i>
             </div>
 
             <div style="text-align: right; margin-top: 1.5rem;">
@@ -254,7 +349,66 @@
         </div>
     </div>
 
-    <!-- Modal CSS (Inline for now, should move to style.css) -->
+    <!-- Modal: Export Options -->
+    <div id="modal-export-options" class="modal hidden">
+        <div class="modal-content glass-panel" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>Export Data</h2>
+                <button class="close-modal-export"
+                    style="background: none; border: none; font-size: 1.5rem; color: var(--text-muted); cursor: pointer;">&times;</button>
+            </div>
+
+            <div style="margin-bottom: 2rem;">
+                <label class="form-label"
+                    style="display: block; margin-bottom: 0.5rem; color: var(--text-light);">Select Data Scope</label>
+                <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+                    <label
+                        style="flex: 1; padding: 1rem; background: rgba(0,0,0,0.2); border-radius: 0.5rem; cursor: pointer; border: 1px solid transparent; transition: all 0.2s;"
+                        class="export-scope-option">
+                        <input type="radio" name="export-scope" value="all" checked style="margin-right: 0.5rem;">
+                        <span style="font-weight: 500;">All Data</span>
+                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">Full system
+                            backup</div>
+                    </label>
+                    <label
+                        style="flex: 1; padding: 1rem; background: rgba(0,0,0,0.2); border-radius: 0.5rem; cursor: pointer; border: 1px solid transparent; transition: all 0.2s;"
+                        class="export-scope-option">
+                        <input type="radio" name="export-scope" value="single" style="margin-right: 0.5rem;">
+                        <span style="font-weight: 500;">Single Event</span>
+                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">Specific event
+                            report</div>
+                    </label>
+                </div>
+
+                <div id="export-event-select-container" style="display: none; margin-bottom: 1.5rem;">
+                    <label class="form-label">Select Event</label>
+                    <select id="export-event-select" class="form-control">
+                        <option value="">Loading events...</option>
+                    </select>
+                </div>
+
+                <label class="form-label"
+                    style="display: block; margin-bottom: 0.5rem; color: var(--text-light);">Select Format</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem;">
+                    <button class="btn-export-action" data-format="excel"
+                        style="padding: 1rem; background: #107c41; color: white; border: none; border-radius: 0.5rem; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; transition: transform 0.1s;">
+                        <i class="fa-solid fa-file-excel" style="font-size: 1.5rem;"></i>
+                        <span style="font-size: 0.9rem;">Excel</span>
+                    </button>
+                    <button class="btn-export-action" data-format="pdf"
+                        style="padding: 1rem; background: #b30b00; color: white; border: none; border-radius: 0.5rem; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; transition: transform 0.1s;">
+                        <i class="fa-solid fa-file-pdf" style="font-size: 1.5rem;"></i>
+                        <span style="font-size: 0.9rem;">PDF</span>
+                    </button>
+                    <button class="btn-export-action" data-format="json"
+                        style="padding: 1rem; background: #333; color: var(--text-muted); border: 1px solid var(--glass-border); border-radius: 0.5rem; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; transition: transform 0.1s;">
+                        <i class="fa-solid fa-file-code" style="font-size: 1.5rem;"></i>
+                        <span style="font-size: 0.9rem;">JSON</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
     <style>
         .modal-overlay {
             position: fixed;

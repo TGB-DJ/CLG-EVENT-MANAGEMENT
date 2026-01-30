@@ -122,8 +122,21 @@
         import { auth } from './js/firebase-config.js';
         import { authService } from './js/auth.js';
 
+        // Failsafe: Ensure loader doesn't stick forever
+        setTimeout(() => {
+            const loader = document.getElementById('auth-loader');
+            if (loader && getComputedStyle(loader).display !== 'none') {
+                console.warn("Auth check slow - forcing UI reveal");
+                loader.style.display = 'none';
+            }
+        }, 3000);
+
         // Start monitoring auth state (Redirects if already logged in)
-        authService.monitorAuth();
+        if (authService) {
+            authService.monitorAuth();
+        } else {
+            console.error("AuthService not loaded");
+        }
 
         // Utils is now global from the script tag above
         const Utils = window.Utils;

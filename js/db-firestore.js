@@ -80,7 +80,6 @@ export class FirestoreManager {
     }
 
     // --- User Management ---
-    // --- User Management ---
     async getUserProfile(uid) {
         const docRef = doc(this.usersCol, uid);
         const docSnap = await getDoc(docRef);
@@ -141,6 +140,12 @@ export class FirestoreManager {
     }
 
     async createEvent(eventData) {
+        // Validation
+        if (!eventData.title || eventData.title.length < 3) throw new Error("Title must be at least 3 characters");
+        if (!eventData.date) throw new Error("Date is required");
+        if (new Date(eventData.date) < new Date()) throw new Error("Event date cannot be in the past");
+        if (eventData.capacity && eventData.capacity < 1) throw new Error("Capacity must be at least 1");
+
         const newEvent = {
             createdAt: new Date().toISOString(),
             status: 'active',
@@ -151,9 +156,14 @@ export class FirestoreManager {
     }
 
     async deleteEvent(id) {
+        // 1. Delete all registrations for this event first
+        const regs = await this.getRegistrations(id);
+        const deletePromises = regs.map(reg => deleteDoc(doc(db, COLLECTIONS.REGISTRATIONS, reg.id)));
+        await Promise.all(deletePromises);
+
+        // 2. Delete the event itself
         await deleteDoc(doc(db, COLLECTIONS.EVENTS, id));
-        // Note: Firestore doesn't cascade delete sub-collections or related docs automatically
-        // For this simple version, we'll leave orphaned registrations or handle them if needed
+        console.log(`Deleted event ${id} and ${regs.length} associated registrations.`);
     }
 
     async updateEvent(id, eventData) {
@@ -271,42 +281,63 @@ export class FirestoreManager {
     }
 
     // --- Utils ---
-    async getAllUsers() {
-        const querySnapshot = await getDocs(collection(db, COLLECTIONS.USERS));
-        const users = [];
-        querySnapshot.forEach((doc) => {
-            users.push({ id: doc.id, ...doc.data() });
-        });
-        return users;
-    }
-
     async exportData() {
         const events = await this.getEvents();
         const registrations = await this.getRegistrations();
         const users = await this.getAllUsers();
+
+        // SORT: Super Admin > Admin > Officer > User > A-Z
+        const roleOrder = { 'admin': 2, 'officer': 3, 'user': 4 };
+
+        users.sort((a, b) => {
+            // Priority 1: Super Admin
+            const isSuperA = this.isSuperAdmin(a.email);
+            const isSuperB = this.isSuperAdmin(b.email);
+
+            if (isSuperA && !isSuperB) return -1;
+            if (!isSuperA && isSuperB) return 1;
+
+            // Priority 2: Role
+            const rA = roleOrder[a.role || 'user'] || 4;
+            const rB = roleOrder[b.role || 'user'] || 4;
+            if (rA !== rB) return rA - rB;
+
+            // Priority 3: Name A-Z
+            return (a.displayName || a.email || '').localeCompare(b.displayName || b.email || '');
+        });
 
         const exportData = {
             exportDate: new Date().toISOString(),
             version: '1.0',
             events: events,
             registrations: registrations,
-            users: users.map(u => ({
-                id: u.id,
-                email: u.email,
-                displayName: u.displayName,
-                role: u.role,
-                createdAt: u.createdAt
-            })),
+            users: users,
             stats: {
                 totalEvents: events.length,
                 totalRegistrations: registrations.length,
                 totalUsers: users.length,
-                adminUsers: users.filter(u => u.role === 'admin').length,
+                adminUsers: users.filter(u => u.role === 'admin' || this.isSuperAdmin(u.email)).length,
                 upcomingEvents: events.filter(e => new Date(e.date) >= new Date()).length
             }
         };
 
-        return JSON.stringify(exportData, null, 2);
+        return exportData;
+    }
+    async exportEventData(eventId) {
+        const event = await this.getEvent(eventId);
+        if (!event) return null;
+        const registrations = await this.getRegistrations(eventId);
+
+        return {
+            exportDate: new Date().toISOString(),
+            type: 'single_event',
+            event: event,
+            registrations: registrations,
+            stats: {
+                totalRegistrations: registrations.length,
+                attended: registrations.filter(r => r.scanned).length
+            }
+        };
     }
 }
 
