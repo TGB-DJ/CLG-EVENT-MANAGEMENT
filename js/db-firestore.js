@@ -1,7 +1,7 @@
 import { db } from './firebase-config.js';
 import {
     collection, addDoc, getDocs, doc, deleteDoc, updateDoc,
-    query, where, getDoc, setDoc
+    query, where, getDoc, setDoc, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const COLLECTIONS = {
@@ -22,6 +22,12 @@ export class FirestoreManager {
         this.regsCol = collection(db, COLLECTIONS.REGISTRATIONS);
         this.usersCol = collection(db, COLLECTIONS.USERS);
         console.log("Firestore Manager Initialized");
+    }
+
+    // Helper: Super Admin Check
+    isSuperAdmin(email) {
+        if (!email) return false;
+        return ADMIN_EMAILS.some(e => e.toLowerCase() === (email || '').toLowerCase());
     }
 
     // Unified User Sync (Handles Creation & Promotion)
@@ -63,6 +69,16 @@ export class FirestoreManager {
         return profile;
     }
 
+    // Real-time User Listener (Lightweight - Single Doc)
+    listenToUserProfile(uid, onUpdate) {
+        const docRef = doc(this.usersCol, uid);
+        return onSnapshot(docRef, (docSnap) => {
+            if (docSnap.exists()) {
+                onUpdate({ id: docSnap.id, ...docSnap.data() });
+            }
+        });
+    }
+
     // --- User Management ---
     // --- User Management ---
     async getUserProfile(uid) {
@@ -81,8 +97,23 @@ export class FirestoreManager {
     }
 
     async updateUserRole(uid, newRole) {
+        // Protect Super Admin
         const docRef = doc(this.usersCol, uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists() && this.isSuperAdmin(docSnap.data().email)) {
+            throw new Error("Action Denied: Cannot modify Super Admin account.");
+        }
         await updateDoc(docRef, { role: newRole });
+    }
+
+    async deleteUser(uid) {
+        // Protect Super Admin
+        const docRef = doc(this.usersCol, uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists() && this.isSuperAdmin(docSnap.data().email)) {
+            throw new Error("Action Denied: Cannot delete Super Admin account.");
+        }
+        await deleteDoc(docRef);
     }
 
     // --- Events ---

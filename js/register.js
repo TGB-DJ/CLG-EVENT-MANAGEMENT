@@ -86,14 +86,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
 
         try {
-            const newReg = await db.registerParticipant(regData);
-            Utils.showToast('Registration successful!', 'success');
-            showTicket(newReg);
+            // 1. Check if already registered
+            const regs = await db.getRegistrations(eventId);
+            const existingReg = regs.find(r => r.email.toLowerCase() === regData.email.toLowerCase());
+
+            if (existingReg) {
+                Utils.showToast('Welcome back! Showing your existing ticket.', 'info');
+                showTicket(existingReg);
+            } else {
+                // 2. New Registration
+                const newReg = await db.registerParticipant(regData);
+                Utils.showToast('Registration successful!', 'success');
+                showTicket(newReg);
+            }
         } catch (error) {
             console.error(error);
             Utils.showToast(error.message || 'Registration failed', 'error');
             submitBtn.disabled = false;
             submitBtn.textContent = 'Confirm Registration';
+
+            // Re-enable input if failed (but not if success/existing)
+            if (!document.getElementById('ticket-section').classList.contains('hidden')) {
+                // Ticket showing, leave disabled/processed
+            }
         }
     });
 

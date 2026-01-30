@@ -15,6 +15,7 @@ export class AuthService {
     constructor() {
         this.user = null;
         this.googleProvider = new GoogleAuthProvider();
+        this.unsubscribeProfile = null; // Store listener to clean up
     }
 
     // Login methods
@@ -31,70 +32,63 @@ export class AuthService {
     monitorAuth(requiredRole = null) {
         onAuthStateChanged(auth, async (user) => {
             this.user = user;
+
+            // Cleanup previous listener if any
+            if (this.unsubscribeProfile) {
+                this.unsubscribeProfile();
+                this.unsubscribeProfile = null;
+            }
+
             const loader = document.getElementById('auth-loader');
             const nav = document.getElementById('main-nav');
             const main = document.getElementById('main-content');
             const isLoginPage = document.getElementById('form-login');
 
             if (user) {
-                // User is signed in. Sync Role & Profile.
-                let profile = null;
+                // 1. Ensure User Exists / Whitelist
                 try {
-                    // This handles creation AND auto-promotion if whitelisted
-                    profile = await dbManager.ensureAdminSync(user);
+                    await dbManager.ensureAdminSync(user);
                 } catch (e) {
                     console.error("DB Error:", e);
-                    profile = { role: 'user' };
                 }
 
-                console.log(`User: ${user.email}, Role: ${profile.role}`);
-
-                // 1. If on Login Page -> Redirect
-                // 1. If on Login Page -> Redirect
-                if (isLoginPage) {
-                    if (loader) loader.style.display = 'flex'; // Show loader during redirect
-
-                    if (profile.role === 'admin') {
-                        window.location.href = 'admin.html';
-                    } else if (profile.role === 'officer') {
-                        window.location.href = 'officer.html';
-                    } else {
-                        window.location.href = 'student.html';
-                    }
-                    return;
-                }
-
-                // 2. Access Control
-                if (requiredRole) {
+                // 2. Start Real-time Listener
+                this.unsubscribeProfile = dbManager.listenToUserProfile(user.uid, (profile) => {
                     const myRole = profile.role || 'user';
+                    console.log(`Live Role Update: ${myRole}`);
 
-                    if (requiredRole === 'admin') {
-                        if (myRole !== 'admin') {
+                    // A. Login Page Redirect
+                    if (isLoginPage) {
+                        if (loader) loader.style.display = 'flex';
+                        if (myRole === 'admin') window.location.href = 'admin.html';
+                        else if (myRole === 'officer') window.location.href = 'officer.html';
+                        else window.location.href = 'student.html';
+                        return;
+                    }
+
+                    // B. Access Control (Demotion check)
+                    if (requiredRole) {
+                        if (requiredRole === 'admin' && myRole !== 'admin') {
                             window.location.href = 'student.html';
                             return;
                         }
-                    } else if (requiredRole === 'officer') {
-                        if (myRole !== 'admin' && myRole !== 'officer') {
+                        if (requiredRole === 'officer' && myRole !== 'admin' && myRole !== 'officer') {
                             window.location.href = 'student.html';
                             return;
                         }
                     }
-                }
 
-                // Success! Reveal Page
-                if (loader) loader.style.display = 'none';
-                if (nav) nav.classList.remove('hidden');
-                if (main) main.classList.remove('hidden');
+                    // Success - UI Reveal
+                    if (loader) loader.style.display = 'none';
+                    if (nav) nav.classList.remove('hidden');
+                    if (main) main.classList.remove('hidden');
+                });
 
             } else {
                 // Not logged in
                 if (!isLoginPage && requiredRole) {
-                    // Redirect to login
-                    console.log("No user, redirecting to login...");
                     window.location.href = 'login.html';
-                    // Keep loader visible during redirect
                 } else if (isLoginPage) {
-                    // On login page and not logged in - this is normal, hide loader
                     if (loader) loader.style.display = 'none';
                 }
             }

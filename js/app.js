@@ -127,6 +127,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (role === 'admin') badgeClass = 'badge-success';
                 if (role === 'officer') badgeClass = 'badge-secondary';
 
+                const isSuper = db.isSuperAdmin(user.email);
+                let controlsHtml;
+
+                if (isSuper) {
+                    controlsHtml = `<span class="badge badge-success" style="background: linear-gradient(135deg, #F59E0B, #B45309); border: 1px solid #F59E0B; color: white; display: flex; align-items: center; gap: 4px;"><i class="fa-solid fa-crown"></i> Super Admin</span>`;
+                } else {
+                    controlsHtml = `
+                        <span class="badge ${badgeClass}" style="text-transform: capitalize;">${role}</span>
+                        ${!isMe ? `
+                            <select class="form-control role-select" data-id="${user.id}" style="padding: 0.25rem; font-size: 0.85rem; width: auto;">
+                                <option value="user" ${role === 'user' ? 'selected' : ''}>Student</option>
+                                <option value="officer" ${role === 'officer' ? 'selected' : ''}>Officer</option>
+                                <option value="admin" ${role === 'admin' ? 'selected' : ''}>Admin</option>
+                            </select>
+                            <button class="btn-delete-user btn-icon" data-id="${user.id}" title="Delete User" style="color: var(--danger); margin-left: 0.5rem;">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        ` : ''}
+                    `;
+                }
+
                 row.innerHTML = `
                     <div style="display: flex; gap: 0.75rem; align-items: center;">
                         <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--secondary); display: flex; align-items: center; justify-content: center; overflow: hidden;">
@@ -138,15 +159,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                     </div>
                     <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <span class="badge ${badgeClass}" style="text-transform: capitalize;">${role}</span>
-                        
-                        ${!isMe ? `
-                            <select class="form-control role-select" data-id="${user.id}" style="padding: 0.25rem; font-size: 0.85rem; width: auto;">
-                                <option value="user" ${role === 'user' ? 'selected' : ''}>Student</option>
-                                <option value="officer" ${role === 'officer' ? 'selected' : ''}>Officer</option>
-                                <option value="admin" ${role === 'admin' ? 'selected' : ''}>Admin</option>
-                            </select>
-                        ` : ''}
+                        ${controlsHtml}
                     </div>
                 `;
                 usersList.appendChild(row);
@@ -170,6 +183,23 @@ document.addEventListener('DOMContentLoaded', () => {
                         Utils.showToast('Failed to update role', 'error');
                         e.target.value = originalValue; // Revert
                         e.target.disabled = false;
+                    }
+                });
+            });
+
+            // Add Listeners to delete buttons
+            document.querySelectorAll('.btn-delete-user').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const uid = e.target.closest('button').dataset.id;
+                    if (confirm('Are you sure you want to delete this user? This cannot be undone.')) {
+                        try {
+                            await db.deleteUser(uid);
+                            Utils.showToast('User deleted successfully', 'success');
+                            renderUserList();
+                        } catch (err) {
+                            console.error(err);
+                            Utils.showToast('Failed to delete user', 'error');
+                        }
                     }
                 });
             });
