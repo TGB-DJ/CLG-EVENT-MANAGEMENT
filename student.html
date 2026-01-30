@@ -293,7 +293,8 @@
                     const event = events.find(e => e.id === reg.eventId);
                     if (!event) return;
 
-                    const waText = `🎉 I'm attending ${event.title}!\n\n📅 Date: ${Utils.formatDate(event.date)}\n📍 Venue: ${event.venue}\n\nSee you there!`;
+                    const ticketUrl = new URL(`register.html?event=${event.id}&ticket=${reg.id}`, window.location.href).href;
+                    const waText = `🎉 I'm attending ${event.title}!\n\n📅 Date: ${Utils.formatDate(event.date)}\n📍 Venue: ${event.venue}\n\nView Ticket: ${ticketUrl}\n\nSee you there!`;
 
                     const card = document.createElement('div');
                     card.className = 'glass-panel';

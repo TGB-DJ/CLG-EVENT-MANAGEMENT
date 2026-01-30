@@ -139,8 +139,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         waBtn.style.color = 'white';
         waBtn.innerHTML = '<i class="fa-brands fa-whatsapp"></i> Share';
         waBtn.target = '_blank';
-        const waText = `Here is my ticket for ${currentEvent.title}.%0AID: ${registration.id}%0ADate: ${Utils.formatDate(currentEvent.date)}`;
-        waBtn.href = `https://wa.me/?text=${waText}`;
+        const ticketUrl = `${window.location.origin}${window.location.pathname}?event=${eventId}&ticket=${registration.id}`;
+        const waText = `Here is my ticket for ${currentEvent.title}.\nID: ${registration.id}\nDate: ${Utils.formatDate(currentEvent.date)}\n\nView Ticket: ${ticketUrl}`;
+        waBtn.href = `https://wa.me/?text=${encodeURIComponent(waText)}`;
 
         // 2. Google Calendar
         const calBtn = document.createElement('button');
