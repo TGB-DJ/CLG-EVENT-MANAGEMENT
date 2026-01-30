@@ -92,9 +92,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            // SORT Users: Admin > Officer > User
+            const roleOrder = { 'admin': 1, 'officer': 2, 'user': 3 };
+            users.sort((a, b) => {
+                const rA = roleOrder[a.role || 'user'] || 3;
+                const rB = roleOrder[b.role || 'user'] || 3;
+                return rA - rB;
+            });
+
+            let lastRole = null;
+
             users.forEach(user => {
                 const role = user.role || 'user';
                 const isMe = currentUser && currentUser.uid === user.id;
+
+                // ADD SPLITTER (Header) if role changes
+                if (role !== lastRole) {
+                    const header = document.createElement('h4');
+                    header.style.cssText = 'margin: 1.5rem 0 0.5rem 0; color: var(--primary); text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.25rem;';
+
+                    let roleTitle = 'Students';
+                    if (role === 'admin') roleTitle = 'Administrators';
+                    if (role === 'officer') roleTitle = 'Officers';
+
+                    header.textContent = roleTitle;
+                    usersList.appendChild(header);
+                    lastRole = role;
+                }
 
                 const row = document.createElement('div');
                 row.style.cssText = 'display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 0.5rem;';

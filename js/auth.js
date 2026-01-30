@@ -50,10 +50,17 @@ export class AuthService {
                 console.log(`User: ${user.email}, Role: ${profile.role}`);
 
                 // 1. If on Login Page -> Redirect
+                // 1. If on Login Page -> Redirect
                 if (isLoginPage) {
                     if (loader) loader.style.display = 'flex'; // Show loader during redirect
-                    if (profile.role === 'admin') window.location.href = 'admin.html';
-                    else window.location.href = 'student.html';
+
+                    if (profile.role === 'admin') {
+                        window.location.href = 'admin.html';
+                    } else if (profile.role === 'officer') {
+                        window.location.href = 'officer.html';
+                    } else {
+                        window.location.href = 'student.html';
+                    }
                     return;
                 }
 

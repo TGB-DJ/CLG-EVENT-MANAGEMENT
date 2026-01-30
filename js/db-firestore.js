@@ -13,7 +13,6 @@ const COLLECTIONS = {
 // ADMIN EMAIL WHITELIST - Add your email here to become first admin
 const ADMIN_EMAILS = [
     'chirenjeevi7616@gmail.com',  // First admin
-    'chiru@gmail.com',             // Second admin
     // Add more emails below:
 ];
 
