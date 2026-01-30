@@ -74,9 +74,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // 4. Show Success
             successCard.style.display = 'block';
-            outName.textContent = result.studentName || ticketData.name || 'Student';
-            outEvent.textContent = result.eventName || 'Event';
+            const sName = result.studentName || ticketData.name || 'Student';
+            const eName = result.eventName || 'Event';
+
+            outName.textContent = sName;
+            outEvent.textContent = eName;
             outId.textContent = ticketData.id;
+
+            // UPDATE STATS & LIST
+            updateSessionStats(sName, eName, ticketData.id);
 
             // Play success sound (beep)
             playSound('success');
@@ -129,4 +135,34 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-logout').addEventListener('click', () => {
         authService.logout();
     });
+
+    // Stats Helper
+    let sessionCount = 0;
+    function updateSessionStats(name, event, id) {
+        sessionCount++;
+        document.getElementById('session-count').textContent = sessionCount;
+
+        const list = document.getElementById('recent-scans-list');
+        const emptyMsg = document.getElementById('no-scans-msg');
+        if (emptyMsg) emptyMsg.style.display = 'none';
+
+        const item = document.createElement('div');
+        item.style.cssText = 'background: rgba(255,255,255,0.05); padding: 0.75rem; border-radius: 0.5rem; margin-bottom: 0.5rem; border-left: 3px solid var(--success); display: flex; justify-content: space-between; align-items: center;';
+
+        const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        item.innerHTML = `
+            <div>
+                <div style="font-weight: bold; font-size: 0.9rem;">${name}</div>
+                <div style="font-size: 0.8rem; color: var(--text-muted);">${event}</div>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-size: 0.8rem; font-family: monospace;">${id.substr(0, 8)}...</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">${time}</div>
+            </div>
+        `;
+
+        // Prepend logic
+        list.insertBefore(item, list.firstChild);
+    }
 });

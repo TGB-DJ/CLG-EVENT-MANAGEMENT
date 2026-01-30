@@ -206,7 +206,12 @@ export class FirestoreManager {
         if (!docSnap.exists()) throw new Error('Registration not found');
 
         const data = docSnap.data();
-        if (data.attended || data.scanned) throw new Error('Already marked attendance!');
+
+        // Prevent Duplicate Scans
+        if (data.attended || data.scanned) {
+            const time = data.scannedAt ? new Date(data.scannedAt).toLocaleTimeString() : 'Unknown Time';
+            throw new Error(`ALREADY USED! Scanned at ${time}`);
+        }
 
         const updateData = {
             attended: true,
