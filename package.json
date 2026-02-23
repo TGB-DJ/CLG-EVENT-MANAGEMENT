@@ -1,0 +1,12 @@
+{
+    "name": "clg-event-management",
+    "version": "1.0.0",
+    "description": "College Event Management System",
+    "scripts": {
+        "prestart": "npm install",
+        "start": "npx http-server . -p 3000 -o"
+    },
+    "devDependencies": {
+        "http-server": "^14.1.1"
+    }
+}
